@@ -1,9 +1,10 @@
-# Invoice Processing Agent with Vision LLM (v1.1.0)
+# Invoice Processing Agent with Vision LLM (v1.2.0)
 
 This tool processes PDF invoices using a vision-capable LLM (like GPT-4o or Claude), extracts vendor names and invoice numbers, and saves them with the naming convention: `HotelCode_Vendor_InvoiceNumber.pdf`.
 
 ## Features
 
+- Automatic hotel location detection from invoice content
 - Process invoices in parallel for faster throughput
 - Batch processing to handle large volumes of invoices
 - Preview mode to verify extraction before renaming files
@@ -71,6 +72,7 @@ Available options:
 --preview                 Preview mode - don't actually rename files
 --batch-size SIZE         Process files in batches of this size
 --workers N               Number of parallel workers (1-8, default: 1)
+--auto-detect             Auto-detect hotel location from invoice content
 --version, -v             Show version information
 ```
 
@@ -83,7 +85,7 @@ python main.py --input ./invoices --output ./processed_invoices
 
 With advanced options:
 ```
-python main.py --input ./invoices --output ./processed_invoices --hotel-code BHMCO --preview --batch-size 5 --workers 4
+python main.py --input ./invoices --output ./processed_invoices --auto-detect --preview --batch-size 5 --workers 4
 ```
 
 With Anthropic Claude:
@@ -110,6 +112,13 @@ python main.py --input ./invoices --output ./processed_invoices --model claude-3
 - The LLM extracts vendor names and invoice numbers directly from the visual representation
 - Files are saved with the naming convention HotelCode_Vendor_InvoiceNumber.pdf
 - For Mac users, you may need to add Poppler to your PATH with: `export PATH=/usr/local/Cellar/poppler/xx.xx.x/bin:$PATH`
+
+## New in v1.2.0
+
+- Added automatic hotel location detection from invoice content
+- Enhanced display of detected location information
+- Added `--auto-detect` command line flag
+- Updated interactive mode with auto-detection option
 
 ## New in v1.1.0
 
