@@ -294,17 +294,34 @@ Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hot
         
         # Check if hotel_location is present and map it to hotel code
         if 'hotel_location' in parsed_result and parsed_result['hotel_location']:
-            for location, code in location_to_hotel_code.items():
-                if location.lower() in parsed_result['hotel_location'].lower():
-                    parsed_result['detected_hotel_code'] = code
-                    break
+            # Create a simplified version of the location text for better matching
+            location_text = parsed_result['hotel_location'].lower()
+            
+            # Simple city name matching for common cases
+            if 'birmingham' in location_text:
+                parsed_result['detected_hotel_code'] = "BHMCO"
+                parsed_result['matched_location'] = "Birmingham, AL"
+            elif 'louis' in location_text or 'stl' in location_text:
+                parsed_result['detected_hotel_code'] = "STLMO"
+                parsed_result['matched_location'] = "St. Louis, MO"
+            elif 'baton' in location_text or 'rouge' in location_text:
+                parsed_result['detected_hotel_code'] = "BTRGI"
+                parsed_result['matched_location'] = "Baton Rouge, LA"
+            else:
+                # More specific matching if simple matching fails
+                for location, code in location_to_hotel_code.items():
+                    if location.lower() in location_text:
+                        parsed_result['detected_hotel_code'] = code
+                        parsed_result['matched_location'] = location
+                        break
             
             # Handle Coralville, IA special case with company name mapping
-            if 'coralville' in parsed_result['hotel_location'].lower() and 'hotel_company' in parsed_result and parsed_result['hotel_company']:
+            if 'coralville' in location_text and 'hotel_company' in parsed_result and parsed_result['hotel_company']:
                 for company, code in company_to_hotel_code.items():
                     if company.lower() in parsed_result['hotel_company'].lower():
                         parsed_result['detected_hotel_code'] = code
                         parsed_result['company_match'] = company
+                        parsed_result['matched_location'] = f"Coralville, IA ({company})"
                         break
         
         return parsed_result
@@ -391,17 +408,34 @@ Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hot
         
         # Check if hotel_location is present and map it to hotel code
         if 'hotel_location' in parsed_result and parsed_result['hotel_location']:
-            for location, code in location_to_hotel_code.items():
-                if location.lower() in parsed_result['hotel_location'].lower():
-                    parsed_result['detected_hotel_code'] = code
-                    break
+            # Create a simplified version of the location text for better matching
+            location_text = parsed_result['hotel_location'].lower()
+            
+            # Simple city name matching for common cases
+            if 'birmingham' in location_text:
+                parsed_result['detected_hotel_code'] = "BHMCO"
+                parsed_result['matched_location'] = "Birmingham, AL"
+            elif 'louis' in location_text or 'stl' in location_text:
+                parsed_result['detected_hotel_code'] = "STLMO"
+                parsed_result['matched_location'] = "St. Louis, MO"
+            elif 'baton' in location_text or 'rouge' in location_text:
+                parsed_result['detected_hotel_code'] = "BTRGI"
+                parsed_result['matched_location'] = "Baton Rouge, LA"
+            else:
+                # More specific matching if simple matching fails
+                for location, code in location_to_hotel_code.items():
+                    if location.lower() in location_text:
+                        parsed_result['detected_hotel_code'] = code
+                        parsed_result['matched_location'] = location
+                        break
             
             # Handle Coralville, IA special case with company name mapping
-            if 'coralville' in parsed_result['hotel_location'].lower() and 'hotel_company' in parsed_result and parsed_result['hotel_company']:
+            if 'coralville' in location_text and 'hotel_company' in parsed_result and parsed_result['hotel_company']:
                 for company, code in company_to_hotel_code.items():
                     if company.lower() in parsed_result['hotel_company'].lower():
                         parsed_result['detected_hotel_code'] = code
                         parsed_result['company_match'] = company
+                        parsed_result['matched_location'] = f"Coralville, IA ({company})"
                         break
         
         return parsed_result
@@ -600,6 +634,9 @@ def interactive_mode():
                         hotel_detected = f"{Fore.GREEN}Yes{Style.RESET_ALL}" if file_info.get('detected_hotel_code') else f"{Fore.RED}No{Style.RESET_ALL}"
                         print(f"     Hotel location: {file_info['hotel_location']}")
                         
+                        if file_info.get('matched_location'):
+                            print(f"     Matched to: {Fore.GREEN}{file_info['matched_location']}{Style.RESET_ALL}")
+                        
                         if file_info.get('hotel_company'):
                             print(f"     Hotel company: {file_info['hotel_company']}")
                             
@@ -688,6 +725,9 @@ def main():
                     # Show detected location/company info if available
                     if file_info.get('hotel_location'):
                         print(f"     Location: {file_info['hotel_location']}")
+                        
+                    if file_info.get('matched_location'):
+                        print(f"     Matched to: {file_info['matched_location']}")
                     
                     if file_info.get('hotel_company'):
                         print(f"     Company: {file_info['hotel_company']}")
