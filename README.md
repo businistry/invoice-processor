@@ -12,6 +12,23 @@ This tool processes PDF invoices using a vision-capable LLM (like GPT-4o or Clau
 - Support for multiple LLM providers (OpenAI and Anthropic)
 - Interactive or command-line operation
 
+## Quick Start
+
+Run the setup script to install all dependencies and start the application:
+
+```bash
+# Make the script executable (if needed)
+chmod +x setup.sh
+
+# Run the setup script
+./setup.sh
+```
+
+The script will:
+1. Install necessary system dependencies (Poppler and libraries)
+2. Install Python dependencies
+3. Launch the application in interactive mode
+
 ## Requirements
 
 - Python 3.6+
@@ -19,10 +36,12 @@ This tool processes PDF invoices using a vision-capable LLM (like GPT-4o or Clau
 - API key for OpenAI or Anthropic (set as environment variables or entered interactively)
 - Python dependencies (see requirements.txt)
 
-## Installation
+## Manual Installation
+
+If you prefer to install components manually:
 
 1. Install Poppler:
-   - Ubuntu/Debian: `sudo apt-get install poppler-utils`
+   - Ubuntu/Debian: `sudo apt-get install -y libjpeg-dev libpoppler-cpp-dev poppler-utils`
    - MacOS: `brew install poppler`
    - Windows: Download from https://blog.alivate.com.au/poppler-windows/
 
