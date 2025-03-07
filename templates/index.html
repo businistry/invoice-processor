@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Invoice Pro{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto text-center mb-5">
+        <h1 class="display-4 mb-4">Invoice Pro</h1>
+        <p class="lead">
+            Streamline your invoice processing with AI-powered hotel invoice management
+        </p>
+        <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+            <a href="{{ url_for('upload') }}" class="btn btn-primary btn-lg px-4 me-md-2">
+                <i class="fas fa-upload me-2"></i>Start Processing
+            </a>
+            <a href="{{ url_for('pricing') }}" class="btn btn-outline-secondary btn-lg px-4">
+                <i class="fas fa-tag me-2"></i>View Pricing
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-robot text-primary fa-3x mb-3"></i>
+                <h3 class="card-title">AI-Powered</h3>
+                <p class="card-text">
+                    Utilizes advanced AI vision models to automatically extract vendor names 
+                    and invoice numbers from your PDFs.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-hotel text-primary fa-3x mb-3"></i>
+                <h3 class="card-title">Hotel-Focused</h3>
+                <p class="card-text">
+                    Automatically detects hotel locations and creates standardized 
+                    filenames with the proper hotel code.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-bolt text-primary fa-3x mb-3"></i>
+                <h3 class="card-title">Fast Processing</h3>
+                <p class="card-text">
+                    Batch processing and parallel execution allows you to handle
+                    large volumes of invoices efficiently.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Getting Started</h4>
+            </div>
+            <div class="card-body">
+                <ol class="list-group list-group-numbered mb-0">
+                    <li class="list-group-item d-flex">
+                        <div>
+                            <strong>Upload your invoice PDFs</strong>
+                            <p class="mb-0">Either drag and drop or select your files to upload.</p>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex">
+                        <div>
+                            <strong>Configure processing options</strong>
+                            <p class="mb-0">Choose hotel code, enable auto-detection, and select AI model.</p>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex">
+                        <div>
+                            <strong>Review the extracted information</strong>
+                            <p class="mb-0">Verify that vendor names and invoice numbers are correctly identified.</p>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex">
+                        <div>
+                            <strong>Download processed files</strong>
+                            <p class="mb-0">Get your renamed invoice files with the proper naming convention.</p>
+                        </div>
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

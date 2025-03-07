@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Invoices - Invoice Pro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-drop-zone {
+        border: 2px dashed #ccc;
+        border-radius: 5px;
+        padding: 50px 20px;
+        text-align: center;
+        background-color: #f8f9fa;
+        transition: all 0.3s ease;
+    }
+    
+    .upload-drop-zone.highlight {
+        border-color: #007bff;
+        background-color: #e8f0fe;
+    }
+    
+    .file-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .hidden-input {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h2 class="mb-4"><i class="fas fa-upload me-2"></i>Upload Invoices</h2>
+        
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" id="upload-form">
+                    <div class="mb-4">
+                        <div id="upload-drop-zone" class="upload-drop-zone mb-3">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                            <h4>Drag & Drop PDF Files Here</h4>
+                            <p class="text-muted">or</p>
+                            <button type="button" class="btn btn-primary" id="browse-button">
+                                <i class="fas fa-folder-open me-2"></i>Browse Files
+                            </button>
+                            <input type="file" name="invoices" id="file-input" class="hidden-input" multiple accept=".pdf">
+                        </div>
+                        
+                        <div id="file-list-container" class="mt-3 d-none">
+                            <h5><i class="fas fa-file-pdf me-2"></i>Selected Files</h5>
+                            <div class="list-group file-list" id="file-list">
+                                <!-- Files will be listed here dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-hotel me-2"></i>Hotel Options</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="auto-detect" name="auto_detect" checked>
+                                        <label class="form-check-label" for="auto-detect">
+                                            Auto-detect hotel location from invoice content
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="mb-3" id="hotel-code-container">
+                                        <label for="hotel-code" class="form-label">Fallback Hotel Code</label>
+                                        <select class="form-select" id="hotel-code" name="hotel_code">
+                                            <option value="STLMO" selected>STLMO - St. Louis, Missouri</option>
+                                            <option value="BHMCO">BHMCO - Birmingham, Colorado</option>
+                                            <option value="BTRGI">BTRGI - Baton Rouge, Georgia</option>
+                                            <option value="custom">Custom Hotel Code</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3 d-none" id="custom-hotel-container">
+                                        <label for="custom-hotel-code" class="form-label">Custom Hotel Code</label>
+                                        <input type="text" class="form-control" id="custom-hotel-code" name="custom_hotel_code" placeholder="e.g., NYCNY">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Processing Options</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="model" class="form-label">AI Model</label>
+                                        <select class="form-select" id="model" name="model">
+                                            <option value="gpt-4o" selected>OpenAI GPT-4o (Recommended)</option>
+                                            <option value="gpt-4-vision-preview">OpenAI GPT-4 Vision</option>
+                                            <option value="claude-3-opus-20240229">Anthropic Claude 3 Opus</option>
+                                            <option value="claude-3-sonnet-20240229">Anthropic Claude 3 Sonnet</option>
+                                            <option value="claude-3-haiku-20240307">Anthropic Claude 3 Haiku</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="preview-mode" name="preview_mode">
+                                        <label class="form-check-label" for="preview-mode">
+                                            Preview mode (don't rename files)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submit-button" disabled>
+                            <i class="fas fa-play me-2"></i>Process Invoices
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('upload-drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const browseButton = document.getElementById('browse-button');
+    const fileListContainer = document.getElementById('file-list-container');
+    const fileList = document.getElementById('file-list');
+    const submitButton = document.getElementById('submit-button');
+    const hotelCodeSelect = document.getElementById('hotel-code');
+    const customHotelContainer = document.getElementById('custom-hotel-container');
+    
+    // Handle file selection via browse button
+    browseButton.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // Handle file selection change
+    fileInput.addEventListener('change', function() {
+        handleFiles(this.files);
+    });
+    
+    // Prevent default behavior for drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    // Highlight drop zone when dragging files over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+        dropZone.classList.add('highlight');
+    }
+    
+    function unhighlight() {
+        dropZone.classList.remove('highlight');
+    }
+    
+    // Handle dropped files
+    dropZone.addEventListener('drop', function(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+    });
+    
+    // Process selected files
+    function handleFiles(files) {
+        const validFiles = Array.from(files).filter(file => file.type === 'application/pdf');
+        
+        if (validFiles.length > 0) {
+            fileListContainer.classList.remove('d-none');
+            submitButton.disabled = false;
+            updateFileList(validFiles);
+        } else {
+            alert('Please select PDF files only.');
+        }
+    }
+    
+    // Update the file list in the UI
+    function updateFileList(files) {
+        fileList.innerHTML = '';
+        
+        Array.from(files).forEach(file => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item d-flex justify-content-between align-items-center';
+            
+            const fileInfo = document.createElement('div');
+            fileInfo.innerHTML = `
+                <i class="fas fa-file-pdf text-danger me-2"></i>
+                <span class="fw-bold">${file.name}</span>
+                <span class="text-muted ms-2">(${formatFileSize(file.size)})</span>
+            `;
+            
+            item.appendChild(fileInfo);
+            fileList.appendChild(item);
+        });
+    }
+    
+    // Format file size in human-readable format
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Handle custom hotel code selection
+    hotelCodeSelect.addEventListener('change', function() {
+        if (this.value === 'custom') {
+            customHotelContainer.classList.remove('d-none');
+        } else {
+            customHotelContainer.classList.add('d-none');
+        }
+    });
+});
+</script>
+{% endblock %}

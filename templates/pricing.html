@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Pricing Plans - Invoice Pro{% endblock %}
+
+{% block content %}
+<div class="row mb-5">
+    <div class="col-lg-8 mx-auto text-center">
+        <h1 class="display-4 mb-3">Pricing Plans</h1>
+        <p class="lead">
+            Choose the perfect plan for your hotel's invoice processing needs
+        </p>
+    </div>
+</div>
+
+<div class="row justify-content-center mb-5">
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header text-center py-4 bg-light">
+                <h4 class="my-0">Basic</h4>
+                <span class="badge bg-primary">Most Popular</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <div class="text-center mb-4">
+                    <h2 class="card-title pricing-card-title">$49<small class="text-muted fw-light">/month</small></h2>
+                    <p class="text-muted">Perfect for small hotels</p>
+                </div>
+                <ul class="list-unstyled mb-4">
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Process up to 200 invoices/month</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Basic hotel location detection</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Standard AI models</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Email support</li>
+                    <li class="mb-2 text-muted"><i class="fas fa-times text-danger me-2"></i>Advanced reporting</li>
+                    <li class="mb-2 text-muted"><i class="fas fa-times text-danger me-2"></i>API access</li>
+                    <li class="mb-2 text-muted"><i class="fas fa-times text-danger me-2"></i>Custom integrations</li>
+                </ul>
+                <div class="d-grid gap-2 mt-auto">
+                    <button class="btn btn-outline-primary">Choose Basic</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 shadow border-primary">
+            <div class="card-header text-center py-4 bg-primary text-white">
+                <h4 class="my-0">Professional</h4>
+                <span class="badge bg-warning text-dark">Best Value</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <div class="text-center mb-4">
+                    <h2 class="card-title pricing-card-title">$129<small class="text-muted fw-light">/month</small></h2>
+                    <p class="text-muted">Ideal for mid-size hotel chains</p>
+                </div>
+                <ul class="list-unstyled mb-4">
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Process up to 1,000 invoices/month</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Advanced hotel location detection</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Premium AI models</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Priority email & chat support</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Advanced reporting</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>API access</li>
+                    <li class="mb-2 text-muted"><i class="fas fa-times text-danger me-2"></i>Custom integrations</li>
+                </ul>
+                <div class="d-grid gap-2 mt-auto">
+                    <button class="btn btn-primary">Choose Professional</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header text-center py-4 bg-light">
+                <h4 class="my-0">Enterprise</h4>
+                <span class="badge bg-info">Unlimited</span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <div class="text-center mb-4">
+                    <h2 class="card-title pricing-card-title">$349<small class="text-muted fw-light">/month</small></h2>
+                    <p class="text-muted">For large hospitality groups</p>
+                </div>
+                <ul class="list-unstyled mb-4">
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Unlimited invoices</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Advanced hotel location detection</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Premium AI models with priority access</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>24/7 dedicated support</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Advanced reporting & analytics</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Unlimited API access</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Custom integrations</li>
+                </ul>
+                <div class="d-grid gap-2 mt-auto">
+                    <button class="btn btn-outline-primary">Choose Enterprise</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Frequently Asked Questions</h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="pricingFAQ">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingOne">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                Can I upgrade or downgrade my plan anytime?
+                            </button>
+                        </h2>
+                        <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#pricingFAQ">
+                            <div class="accordion-body">
+                                Yes, you can upgrade your plan at any time and the change will take effect immediately. 
+                                Downgrades will take effect at the end of your current billing cycle.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingTwo">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                What happens if I exceed my monthly invoice limit?
+                            </button>
+                        </h2>
+                        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#pricingFAQ">
+                            <div class="accordion-body">
+                                If you exceed your monthly invoice limit, you'll still be able to process invoices at a rate of $0.25 per additional invoice. 
+                                If you frequently exceed your limit, we recommend upgrading to the next plan level for better pricing.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingThree">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                Is there a setup fee?
+                            </button>
+                        </h2>
+                        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#pricingFAQ">
+                            <div class="accordion-body">
+                                No, there are no setup fees for our standard plans. For Enterprise customers requiring custom integrations, 
+                                there may be a one-time setup fee depending on the complexity of the integration requirements.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingFour">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                                Do you offer a free trial?
+                            </button>
+                        </h2>
+                        <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#pricingFAQ">
+                            <div class="accordion-body">
+                                Yes, we offer a 14-day free trial with access to all Professional plan features and a limit of 50 invoices. 
+                                No credit card required to start your trial.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingFive">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+                                Can I get a custom plan for my specific needs?
+                            </button>
+                        </h2>
+                        <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#pricingFAQ">
+                            <div class="accordion-body">
+                                Yes, we offer custom plans for organizations with specific needs. Please contact our sales team at 
+                                <a href="mailto:sales@invoice-pro.com">sales@invoice-pro.com</a> to discuss your requirements.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card bg-light border-0 shadow-sm">
+            <div class="card-body p-4 text-center">
+                <h4>Need help choosing the right plan?</h4>
+                <p class="mb-4">Our team is ready to help you find the perfect solution for your hotel's needs.</p>
+                <button class="btn btn-primary px-4 me-2">
+                    <i class="fas fa-phone me-2"></i>Schedule a Call
+                </button>
+                <button class="btn btn-outline-primary px-4">
+                    <i class="fas fa-envelope me-2"></i>Contact Sales
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

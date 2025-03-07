@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}API Documentation - Invoice Pro{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h2 class="mb-4"><i class="fas fa-code me-2"></i>API Documentation</h2>
+        
+        <div class="alert alert-info mb-4">
+            <i class="fas fa-info-circle me-2"></i>
+            The Invoice Pro API is available on Professional and Enterprise plans. It allows you to programmatically process invoices and integrate with your existing systems.
+        </div>
+        
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-key me-2"></i>Authentication</h5>
+            </div>
+            <div class="card-body">
+                <p>All API requests require authentication using an API key. You can generate an API key in the <a href="{{ url_for('settings') }}">Settings</a> page.</p>
+                
+                <h6 class="mt-4">Example Request</h6>
+                <pre class="bg-light p-3 border rounded"><code>curl -X POST https://api.invoice-pro.com/v1/process \
+-H "Authorization: Bearer YOUR_API_KEY" \
+-H "Content-Type: application/json" \
+-d '{"options": {"hotel_code": "STLMO", "auto_detect": true}}'</code></pre>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Endpoints</h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="apiEndpoints">
+                    <!-- Process Invoice Endpoint -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingOne">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                <span class="badge bg-success me-2">POST</span> /v1/process
+                            </button>
+                        </h2>
+                        <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#apiEndpoints">
+                            <div class="accordion-body">
+                                <p>Process invoices and extract information.</p>
+                                
+                                <h6 class="mt-3">Request Parameters</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Parameter</th>
+                                                <th>Type</th>
+                                                <th>Required</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>file</code></td>
+                                                <td>File</td>
+                                                <td>Yes</td>
+                                                <td>The PDF invoice file to process</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>options.hotel_code</code></td>
+                                                <td>String</td>
+                                                <td>No</td>
+                                                <td>Default hotel code to use (e.g., "STLMO")</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>options.auto_detect</code></td>
+                                                <td>Boolean</td>
+                                                <td>No</td>
+                                                <td>Whether to auto-detect hotel location (default: true)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>options.model</code></td>
+                                                <td>String</td>
+                                                <td>No</td>
+                                                <td>AI model to use (default: "gpt-4o")</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <h6 class="mt-4">Response</h6>
+                                <pre class="bg-light p-3 border rounded"><code>{
+  "success": true,
+  "data": {
+    "vendor": "AcmeCorp",
+    "invoice_number": "INV-12345",
+    "hotel_location": "St. Louis, MO",
+    "detected_hotel_code": "STLMO",
+    "used_hotel_code": "STLMO",
+    "filename": "STLMO_AcmeCorp_INV-12345.pdf",
+    "download_url": "https://api.invoice-pro.com/v1/files/download/abcdef123456"
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Get Status Endpoint -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingTwo">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                <span class="badge bg-primary me-2">GET</span> /v1/status/{job_id}
+                            </button>
+                        </h2>
+                        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#apiEndpoints">
+                            <div class="accordion-body">
+                                <p>Check the status of a processing job.</p>
+                                
+                                <h6 class="mt-3">Request Parameters</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Parameter</th>
+                                                <th>Type</th>
+                                                <th>Required</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>job_id</code></td>
+                                                <td>String</td>
+                                                <td>Yes</td>
+                                                <td>The job ID returned from the process endpoint</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <h6 class="mt-4">Response</h6>
+                                <pre class="bg-light p-3 border rounded"><code>{
+  "job_id": "abcdef123456",
+  "status": "completed",
+  "progress": 100,
+  "result": {
+    "vendor": "AcmeCorp",
+    "invoice_number": "INV-12345",
+    "hotel_location": "St. Louis, MO",
+    "detected_hotel_code": "STLMO",
+    "used_hotel_code": "STLMO",
+    "filename": "STLMO_AcmeCorp_INV-12345.pdf",
+    "download_url": "https://api.invoice-pro.com/v1/files/download/abcdef123456"
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Batch Process Endpoint -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingThree">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                <span class="badge bg-success me-2">POST</span> /v1/batch/process
+                            </button>
+                        </h2>
+                        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#apiEndpoints">
+                            <div class="accordion-body">
+                                <p>Process multiple invoices in a batch.</p>
+                                
+                                <h6 class="mt-3">Request Parameters</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Parameter</th>
+                                                <th>Type</th>
+                                                <th>Required</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>files</code></td>
+                                                <td>Array of Files</td>
+                                                <td>Yes</td>
+                                                <td>Array of PDF invoice files to process</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>options</code></td>
+                                                <td>Object</td>
+                                                <td>No</td>
+                                                <td>Same options as single process endpoint</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <h6 class="mt-4">Response</h6>
+                                <pre class="bg-light p-3 border rounded"><code>{
+  "batch_id": "xyz789123",
+  "status": "processing",
+  "total_files": 3,
+  "processed_files": 0,
+  "estimated_time_seconds": 45
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-code-branch me-2"></i>Code Examples</h5>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="codeExampleTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="python-tab" data-bs-toggle="tab" data-bs-target="#python" type="button" role="tab" aria-controls="python" aria-selected="true">Python</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="javascript-tab" data-bs-toggle="tab" data-bs-target="#javascript" type="button" role="tab" aria-controls="javascript" aria-selected="false">JavaScript</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="curl-tab" data-bs-toggle="tab" data-bs-target="#curl" type="button" role="tab" aria-controls="curl" aria-selected="false">cURL</button>
+                    </li>
+                </ul>
+                <div class="tab-content pt-3" id="codeExampleTabContent">
+                    <div class="tab-pane fade show active" id="python" role="tabpanel" aria-labelledby="python-tab">
+                        <pre class="bg-light p-3 border rounded"><code>import requests
+
+API_KEY = "your_api_key"
+API_URL = "https://api.invoice-pro.com/v1"
+
+def process_invoice(file_path, hotel_code="STLMO", auto_detect=True):
+    headers = {
+        "Authorization": f"Bearer {API_KEY}"
+    }
+    
+    files = {
+        "file": open(file_path, "rb")
+    }
+    
+    data = {
+        "options.hotel_code": hotel_code,
+        "options.auto_detect": "true" if auto_detect else "false"
+    }
+    
+    response = requests.post(f"{API_URL}/process", headers=headers, files=files, data=data)
+    return response.json()
+
+# Example usage
+result = process_invoice("path/to/invoice.pdf")
+print(result)</code></pre>
+                    </div>
+                    <div class="tab-pane fade" id="javascript" role="tabpanel" aria-labelledby="javascript-tab">
+                        <pre class="bg-light p-3 border rounded"><code>// Using fetch API
+const API_KEY = 'your_api_key';
+const API_URL = 'https://api.invoice-pro.com/v1';
+
+async function processInvoice(fileInput, options = {}) {
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  
+  // Add options
+  if (options.hotelCode) {
+    formData.append('options.hotel_code', options.hotelCode);
+  }
+  
+  formData.append('options.auto_detect', options.autoDetect !== false);
+  
+  const response = await fetch(`${API_URL}/process`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`
+    },
+    body: formData
+  });
+  
+  return response.json();
+}
+
+// Example usage
+document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fileInput = document.getElementById('invoiceFile');
+  const result = await processInvoice(fileInput, {
+    hotelCode: 'STLMO',
+    autoDetect: true
+  });
+  console.log(result);
+});</code></pre>
+                    </div>
+                    <div class="tab-pane fade" id="curl" role="tabpanel" aria-labelledby="curl-tab">
+                        <pre class="bg-light p-3 border rounded"><code>curl -X POST https://api.invoice-pro.com/v1/process \
+-H "Authorization: Bearer YOUR_API_KEY" \
+-F "file=@/path/to/invoice.pdf" \
+-F "options.hotel_code=STLMO" \
+-F "options.auto_detect=true"</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card bg-light border-0 shadow-sm mb-4">
+            <div class="card-body p-4 text-center">
+                <h4>Need help with the API?</h4>
+                <p class="mb-4">Our developer support team is ready to assist you with integration.</p>
+                <button class="btn btn-primary px-4">
+                    <i class="fas fa-life-ring me-2"></i>Contact Developer Support
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Invoice Pro{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h2 class="mb-4"><i class="fas fa-cog me-2"></i>Settings</h2>
+        
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="list-group shadow-sm">
+                    <a href="#account-settings" class="list-group-item list-group-item-action active" data-bs-toggle="list">
+                        <i class="fas fa-user me-2"></i>Account
+                    </a>
+                    <a href="#api-settings" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-key me-2"></i>API Keys
+                    </a>
+                    <a href="#hotel-settings" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-hotel me-2"></i>Hotel Configuration
+                    </a>
+                    <a href="#notification-settings" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </a>
+                    <a href="#integration-settings" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-plug me-2"></i>Integrations
+                    </a>
+                    <a href="#billing-settings" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-credit-card me-2"></i>Billing
+                    </a>
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <div class="tab-content">
+                    <!-- Account Settings -->
+                    <div class="tab-pane fade show active" id="account-settings">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-user me-2"></i>Account Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <form>
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">Email Address</label>
+                                        <input type="email" class="form-control" id="email" value="user@example.com">
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="first-name" class="form-label">First Name</label>
+                                            <input type="text" class="form-control" id="first-name" value="John">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="last-name" class="form-label">Last Name</label>
+                                            <input type="text" class="form-control" id="last-name" value="Doe">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="company" class="form-label">Company Name</label>
+                                        <input type="text" class="form-control" id="company" value="Hotel Management Inc.">
+                                    </div>
+                                    <hr>
+                                    <h6 class="mb-3">Change Password</h6>
+                                    <div class="mb-3">
+                                        <label for="current-password" class="form-label">Current Password</label>
+                                        <input type="password" class="form-control" id="current-password">
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="new-password" class="form-label">New Password</label>
+                                            <input type="password" class="form-control" id="new-password">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="confirm-password" class="form-label">Confirm New Password</label>
+                                            <input type="password" class="form-control" id="confirm-password">
+                                        </div>
+                                    </div>
+                                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>Save Changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- API Keys Settings -->
+                    <div class="tab-pane fade" id="api-settings">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-key me-2"></i>API Keys</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Configure your API keys for different AI vision models.
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h6 class="mb-3">OpenAI API Key</h6>
+                                    <div class="input-group mb-3">
+                                        <input type="password" class="form-control" id="openai-key" placeholder="sk-..." value="sk-XXXXXXXXXXXXXXXXXXXX">
+                                        <button class="btn btn-outline-secondary" type="button" id="toggle-openai">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Used for GPT-4o and GPT-4 Vision models.</div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h6 class="mb-3">Anthropic API Key</h6>
+                                    <div class="input-group mb-3">
+                                        <input type="password" class="form-control" id="anthropic-key" placeholder="sk-ant-..." value="sk-ant-XXXXXXXXXXXXXXXXXXXX">
+                                        <button class="btn btn-outline-secondary" type="button" id="toggle-anthropic">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Used for Claude 3 Opus, Sonnet, and Haiku models.</div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Save API Keys
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hotel Configuration -->
+                    <div class="tab-pane fade" id="hotel-settings">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-hotel me-2"></i>Hotel Configuration</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <h6>Default Hotel Codes</h6>
+                                    <p class="text-muted">Configure your hotel locations and their corresponding codes.</p>
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Hotel Name</th>
+                                                    <th>Location</th>
+                                                    <th>Code</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Saint Pine Lodging</td>
+                                                    <td>St. Louis, MO</td>
+                                                    <td>STLMO</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary me-1">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Cast Iron Lodging</td>
+                                                    <td>Birmingham, CO</td>
+                                                    <td>BHMCO</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary me-1">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Red Stick Lodging</td>
+                                                    <td>Baton Rouge, GA</td>
+                                                    <td>BTRGI</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary me-1">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <button class="btn btn-sm btn-outline-primary mt-2">
+                                        <i class="fas fa-plus me-1"></i>Add New Hotel
+                                    </button>
+                                </div>
+                                
+                                <hr>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="auto-detect-hotels" checked>
+                                        <label class="form-check-label" for="auto-detect-hotels">
+                                            Auto-detect hotel location from invoice content
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="default-hotel" class="form-label">Default Hotel Code (when auto-detection fails)</label>
+                                    <select class="form-select" id="default-hotel">
+                                        <option value="STLMO" selected>STLMO - St. Louis, Missouri</option>
+                                        <option value="BHMCO">BHMCO - Birmingham, Colorado</option>
+                                        <option value="BTRGI">BTRGI - Baton Rouge, Georgia</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Save Hotel Settings
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Other settings tabs -->
+                    <div class="tab-pane fade" id="notification-settings">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Notification Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Configure your notification preferences.</p>
+                                <!-- Notification settings content here -->
+                                <div class="alert alert-info">
+                                    Notification settings are available in the Professional and Enterprise plans.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="integration-settings">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-plug me-2"></i>Integration Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Connect Invoice Pro to your accounting software and other systems.</p>
+                                <!-- Integration settings content here -->
+                                <div class="alert alert-info">
+                                    Integrations are available in the Professional and Enterprise plans.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="billing-settings">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Billing Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Manage your subscription and payment methods.</p>
+                                <!-- Billing settings content here -->
+                                <div class="alert alert-info">
+                                    You are currently on the Basic plan. <a href="{{ url_for('pricing') }}">Upgrade</a> to get more features.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility for API keys
+    const toggleOpenAI = document.getElementById('toggle-openai');
+    const openaiKey = document.getElementById('openai-key');
+    
+    if (toggleOpenAI) {
+        toggleOpenAI.addEventListener('click', function() {
+            const type = openaiKey.getAttribute('type') === 'password' ? 'text' : 'password';
+            openaiKey.setAttribute('type', type);
+            toggleOpenAI.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        });
+    }
+    
+    const toggleAnthropic = document.getElementById('toggle-anthropic');
+    const anthropicKey = document.getElementById('anthropic-key');
+    
+    if (toggleAnthropic) {
+        toggleAnthropic.addEventListener('click', function() {
+            const type = anthropicKey.getAttribute('type') === 'password' ? 'text' : 'password';
+            anthropicKey.setAttribute('type', type);
+            toggleAnthropic.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        });
+    }
+});
+</script>
+{% endblock %}

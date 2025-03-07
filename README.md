@@ -20,14 +20,19 @@ Run the setup script to install all dependencies and start the application:
 # Make the script executable (if needed)
 chmod +x setup.sh
 
-# Run the setup script
+# Run the setup script with CLI interface (original version)
 ./setup.sh
+
+# Or run with the new web interface (monetized version)
+./setup.sh --web
 ```
 
 The script will:
 1. Install necessary system dependencies (Poppler and libraries)
 2. Install Python dependencies
-3. Launch the application in interactive mode
+3. Launch the application in your preferred mode:
+   - CLI mode: Interactive command-line interface
+   - Web mode: Modern web interface accessible at http://localhost:5000
 
 ## Requirements
 

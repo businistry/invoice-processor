@@ -16,5 +16,12 @@ fi
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Run the application
-python main.py -i
+# Check if --web flag is passed
+if [[ "$1" == "--web" ]]; then
+  echo "Starting Invoice Pro web application..."
+  python run.py
+else
+  # Run the CLI application
+  echo "Starting Invoice Pro command-line application..."
+  python main.py -i
+fi
