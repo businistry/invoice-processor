@@ -122,7 +122,7 @@ python main.py --input ./invoices --output ./processed_invoices --model claude-3
 
 With Mistral AI:
 ```
-python main.py --input ./invoices --output ./processed_invoices --model mistral-large-latest
+python main.py --input ./invoices --output ./processed_invoices --model mistral-large-2402
 ```
 
 ## Supported Hotel Codes
@@ -136,7 +136,7 @@ python main.py --input ./invoices --output ./processed_invoices --model mistral-
 
 - OpenAI: gpt-4o (default), gpt-4-vision-preview
 - Anthropic: claude-3-sonnet-20240229, claude-3-opus-20240229, claude-3-haiku-20240307
-- Mistral AI: mistral-large-latest, mistral-medium-latest
+- Mistral AI: mistral-large-2402, mistral-medium-2312
 
 ## Notes
 

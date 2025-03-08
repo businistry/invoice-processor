@@ -23,7 +23,7 @@ class MistralOCRProcessor:
             raise ValueError("Mistral API key is required")
         
         self.base_url = "https://api.mistral.ai/v1"
-        self.default_model = "mistral-large-latest"  # Model with vision capabilities
+        self.default_model = "mistral-large-2402"  # Use specific model version
         
         # Define the location mapping for hotel code detection
         self.location_to_hotel_code = {
@@ -85,51 +85,34 @@ class MistralOCRProcessor:
             "Authorization": f"Bearer {self.api_key}"
         }
         
+        # Format according to Mistral's API documentation
         payload = {
             "model": self.default_model,
             "messages": [
                 {
                     "role": "system",
-                    "content": """You are an invoice processing assistant. Extract information from invoice images.
-                    
-The vendor name is the company that issued the invoice. The invoice number is a unique identifier for this specific invoice.
-
-Pay special attention to any hotel or location information in the invoice. Look for addresses, letterheads, or location references that might indicate which hotel this invoice is for. Common locations are:
-- St. Louis, Missouri (or MO)
-- Birmingham, Alabama (or AL)
-- Baton Rouge, Louisiana (or LA)
-- Coralville, Iowa (or IA) - look for address: 2706 James St. Coralville, IA
-
-If the address mentions Coralville, IA, look for these company names:
-- Cast Iron Lodging (code for Birmingham)
-- Saint Pine Lodging or Hotel Majestic (code for St. Louis)
-- Red Stick Lodging (code for Baton Rouge)
-
-If you find a matching location or company, include it in your response."""
+                    "content": "You are an invoice processing assistant. Extract information from invoice images. The vendor name is the company that issued the invoice. The invoice number is a unique identifier for this specific invoice. Pay special attention to any hotel or location information in the invoice."
                 },
                 {
                     "role": "user",
                     "content": [
                         {
                             "type": "text",
-                            "text": """Extract the following information from this invoice:
-1. Vendor/Company Name: The name of the company that issued the invoice
-2. Invoice Number: The unique identifier for this invoice
-3. Hotel Location: If present, identify which hotel location this invoice is from (St. Louis, Birmingham, Baton Rouge, or Coralville)
-4. Hotel Company: If the Coralville, IA address appears, identify which company name is associated with it (Cast Iron Lodging, Saint Pine Lodging, Hotel Majestic, or Red Stick Lodging)
-
-Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hotel_location', and 'hotel_company' (if found). If any field is not clearly identifiable, set its value to null. Do not include explanations or any other text outside the JSON."""
+                            "text": "Extract the following information from this invoice: 1) Vendor/Company Name, 2) Invoice Number, 3) Hotel Location (if present, which might be St. Louis, Birmingham, Baton Rouge, or Coralville), 4) Hotel Company (if Coralville address appears). Respond ONLY with a JSON object with keys 'vendor', 'invoice_number', 'hotel_location', and 'hotel_company' (null if not found)."
                         },
                         {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": base64_image
                             }
                         }
                     ]
                 }
             ],
-            "max_tokens": 300
+            "max_tokens": 1000,
+            "temperature": 0.1
         }
         
         response = requests.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)

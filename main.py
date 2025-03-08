@@ -596,8 +596,8 @@ def interactive_mode():
     # Add Mistral models if available
     if MISTRAL_AVAILABLE:
         models.extend([
-            ("6", "mistral-large-latest", "Mistral Large (OCR-optimized)"),
-            ("7", "mistral-medium-latest", "Mistral Medium (OCR-optimized)")
+            ("6", "mistral-large-2402", "Mistral Large (OCR-optimized)"),
+            ("7", "mistral-medium-2312", "Mistral Medium (OCR-optimized)")
         ])
     
     for num, model_id, desc in models:
