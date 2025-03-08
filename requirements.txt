@@ -7,3 +7,4 @@ tqdm==4.66.1
 Flask==2.0.1
 Flask-WTF==1.0.0
 Werkzeug==2.0.2
+mistralai==0.0.8

@@ -1,6 +1,6 @@
-# Invoice Processing Agent with Vision LLM (v1.2.0)
+# Invoice Processing Agent with Vision LLM (v1.3.0)
 
-This tool processes PDF invoices using a vision-capable LLM (like GPT-4o or Claude), extracts vendor names and invoice numbers, and saves them with the naming convention: `HotelCode_Vendor_InvoiceNumber.pdf`.
+This tool processes PDF invoices using a vision-capable LLM (like GPT-4o, Claude, or Mistral AI), extracts vendor names and invoice numbers, and saves them with the naming convention: `HotelCode_Vendor_InvoiceNumber.pdf`.
 
 ## Features
 
@@ -9,7 +9,7 @@ This tool processes PDF invoices using a vision-capable LLM (like GPT-4o or Clau
 - Batch processing to handle large volumes of invoices
 - Preview mode to verify extraction before renaming files
 - Robust error handling and retry mechanisms
-- Support for multiple LLM providers (OpenAI and Anthropic)
+- Support for multiple LLM providers (OpenAI, Anthropic, and Mistral AI)
 - Interactive or command-line operation
 
 ## Quick Start
@@ -38,7 +38,7 @@ The script will:
 
 - Python 3.6+
 - Poppler (for PDF to image conversion)
-- API key for OpenAI or Anthropic (set as environment variables or entered interactively)
+- API key for OpenAI, Anthropic, or Mistral AI (set as environment variables or entered interactively)
 - Python dependencies (see requirements.txt)
 
 ## Manual Installation
@@ -62,6 +62,9 @@ If you prefer to install components manually:
 
    # For Anthropic
    export ANTHROPIC_API_KEY=your-api-key
+   
+   # For Mistral AI
+   export MISTRAL_API_KEY=your-api-key
    ```
 
 ## Usage
@@ -117,6 +120,11 @@ With Anthropic Claude:
 python main.py --input ./invoices --output ./processed_invoices --model claude-3-sonnet-20240229
 ```
 
+With Mistral AI:
+```
+python main.py --input ./invoices --output ./processed_invoices --model mistral-large-latest
+```
+
 ## Supported Hotel Codes
 
 - `STLMO` - St. Louis, Missouri (default)
@@ -128,6 +136,7 @@ python main.py --input ./invoices --output ./processed_invoices --model claude-3
 
 - OpenAI: gpt-4o (default), gpt-4-vision-preview
 - Anthropic: claude-3-sonnet-20240229, claude-3-opus-20240229, claude-3-haiku-20240307
+- Mistral AI: mistral-large-latest, mistral-medium-latest
 
 ## Notes
 
@@ -136,6 +145,13 @@ python main.py --input ./invoices --output ./processed_invoices --model claude-3
 - The LLM extracts vendor names and invoice numbers directly from the visual representation
 - Files are saved with the naming convention HotelCode_Vendor_InvoiceNumber.pdf
 - For Mac users, you may need to add Poppler to your PATH with: `export PATH=/usr/local/Cellar/poppler/xx.xx.x/bin:$PATH`
+
+## New in v1.3.0
+
+- Added support for Mistral AI's OCR and document understanding capabilities
+- Integrated Mistral's advanced document analysis for improved extraction accuracy
+- Updated the model selection UI to include Mistral models
+- Added environment variable support for Mistral API keys
 
 ## New in v1.2.0
 

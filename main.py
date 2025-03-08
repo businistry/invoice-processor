@@ -17,6 +17,13 @@ from colorama import Fore, Style, Back
 import tqdm
 from concurrent.futures import ThreadPoolExecutor
 
+# Import Mistral OCR processor
+try:
+    from mistral_ocr import MistralOCRProcessor
+    MISTRAL_AVAILABLE = True
+except ImportError:
+    MISTRAL_AVAILABLE = False
+
 # Initialize colorama for colored terminal output
 colorama.init()
 
@@ -34,15 +41,23 @@ class InvoiceProcessor:
         self.max_workers = max_workers
         self.auto_detect_hotel = auto_detect_hotel
         
-        # Set API keys
+        # Set API keys based on model
         self.openai_api_key = api_key if self.model and self.model.startswith("gpt") else os.environ.get('OPENAI_API_KEY')
         self.anthropic_api_key = api_key if self.model and self.model.startswith("claude") else os.environ.get('ANTHROPIC_API_KEY')
+        self.mistral_api_key = api_key if self.model and self.model.startswith("mistral") else os.environ.get('MISTRAL_API_KEY')
+        
+        # Initialize Mistral OCR processor if needed
+        self.mistral_processor = None
+        if self.model.startswith("mistral") and MISTRAL_AVAILABLE:
+            self.mistral_processor = MistralOCRProcessor(api_key=self.mistral_api_key)
         
         # Validate API keys
         if self.model.startswith("gpt") and not self.openai_api_key:
             raise ValueError("OpenAI API key is required for GPT models")
         if self.model.startswith("claude") and not self.anthropic_api_key:
             raise ValueError("Anthropic API key is required for Claude models")
+        if self.model.startswith("mistral") and not self.mistral_api_key:
+            raise ValueError("Mistral API key is required for Mistral models")
         
         # Create output directory if it doesn't exist
         if not self.output_dir.exists():
@@ -194,6 +209,8 @@ class InvoiceProcessor:
                     return self.extract_with_openai(image)
                 elif self.model.startswith("claude"):
                     return self.extract_with_anthropic(image)
+                elif self.model.startswith("mistral") and self.mistral_processor:
+                    return self.extract_with_mistral(image)
                 else:
                     raise ValueError(f"Unsupported model: {self.model}")
             except requests.exceptions.RequestException as e:
@@ -440,6 +457,15 @@ Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hot
         
         return parsed_result
         
+    def extract_with_mistral(self, image):
+        """Extract information using Mistral's OCR and document understanding capabilities"""
+        try:
+            # Use the MistralOCRProcessor to extract information
+            result = self.mistral_processor.extract_info(image)
+            return result
+        except Exception as e:
+            raise ValueError(f"Mistral OCR processing failed: {str(e)}")
+        
     def _parse_llm_response(self, content):
         """Parse the response from the LLM and extract JSON data"""
         # Try different parsing strategies in order of preference
@@ -567,6 +593,13 @@ def interactive_mode():
         ("5", "claude-3-haiku-20240307", "Anthropic Claude 3 Haiku")
     ]
     
+    # Add Mistral models if available
+    if MISTRAL_AVAILABLE:
+        models.extend([
+            ("6", "mistral-large-latest", "Mistral Large (OCR-optimized)"),
+            ("7", "mistral-medium-latest", "Mistral Medium (OCR-optimized)")
+        ])
+    
     for num, model_id, desc in models:
         print(f"  {Fore.GREEN}{num}{Style.RESET_ALL}. {model_id} - {desc}")
     
@@ -582,6 +615,9 @@ def interactive_mode():
     elif model.startswith("claude") and not os.environ.get('ANTHROPIC_API_KEY'):
         print(f"\n{Fore.YELLOW}Step 6: Enter your Anthropic API key{Style.RESET_ALL}")
         api_key = getpass.getpass("Anthropic API Key: ")
+    elif model.startswith("mistral") and not os.environ.get('MISTRAL_API_KEY'):
+        print(f"\n{Fore.YELLOW}Step 6: Enter your Mistral API key{Style.RESET_ALL}")
+        api_key = getpass.getpass("Mistral API Key: ")
     
     # Final step: Confirm and run
     print(f"\n{Fore.YELLOW}Summary:{Style.RESET_ALL}")
@@ -671,7 +707,7 @@ def main():
     parser.add_argument("--input", help="Directory containing invoice PDFs")
     parser.add_argument("--output", help="Directory to save processed invoices")
     parser.add_argument("--hotel-code", help="Hotel code for naming convention (e.g., STLMO, BHMCO, BTRGI)")
-    parser.add_argument("--model", help="Model to use (gpt-4o, claude-3-sonnet-20240229, etc.)")
+    parser.add_argument("--model", help="Model to use (gpt-4o, claude-3-sonnet-20240229, mistral-large-latest, etc.)")
     parser.add_argument("--api-key", help="API key for the selected model")
     parser.add_argument("--interactive", "-i", action="store_true", help="Run in interactive mode with CLI interface")
     parser.add_argument("--preview", action="store_true", help="Preview mode - don't actually rename files")
@@ -684,8 +720,9 @@ def main():
     
     # Show version info
     if args.version:
-        print(f"Invoice Processor v1.2.0")
+        print(f"Invoice Processor v1.3.0")
         print(f"Vision AI-powered invoice processing tool")
+        print(f"Supports OpenAI, Anthropic, and Mistral OCR")
         return
     
     # Run in interactive mode if no arguments provided or --interactive flag is used
