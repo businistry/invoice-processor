@@ -14,7 +14,27 @@ This tool processes PDF invoices using a vision-capable LLM (like GPT-4o or Clau
 
 ## Quick Start
 
-Run the setup script to install all dependencies and start the application:
+Run the appropriate setup script for your operating system to install dependencies and start the application.
+
+**For Windows:**
+
+Open PowerShell, navigate to the project directory, and run:
+
+```powershell
+.\setup.ps1
+```
+You may need to adjust your script execution policy. If you see an error, try:
+`Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+Then run `.\setup.ps1` again.
+
+The script will:
+1. Guide you through installing Chocolatey (a package manager) if not already present.
+2. Install Poppler (for PDF processing) using Chocolatey.
+3. Create a Python virtual environment (`venv`).
+4. Install Python dependencies.
+5. Offer to launch the application in interactive mode.
+
+**For Linux/macOS:**
 
 ```bash
 # Make the script executable (if needed)
@@ -25,9 +45,9 @@ chmod +x setup.sh
 ```
 
 The script will:
-1. Install necessary system dependencies (Poppler and libraries)
-2. Install Python dependencies
-3. Launch the application in interactive mode
+1. Install necessary system dependencies (Poppler and libraries).
+2. Install Python dependencies.
+3. Launch the application in interactive mode.
 
 ## Requirements
 
@@ -41,9 +61,12 @@ The script will:
 If you prefer to install components manually:
 
 1. Install Poppler:
+   - **Windows:** The recommended method is to use the `.\setup.ps1` script which handles this. Alternatively, for manual installation:
+     - Install Chocolatey from https://chocolatey.org/install
+     - Then run `choco install poppler` in an Administrator PowerShell.
+     - Or, download Poppler for Windows from a reputable source (e.g., the one often cited is [Poppler for Windows on Alivate.com.au](https://blog.alivate.com.au/poppler-windows/)) and add its `bin` directory to your system's PATH.
    - Ubuntu/Debian: `sudo apt-get install -y libjpeg-dev libpoppler-cpp-dev poppler-utils`
    - MacOS: `brew install poppler`
-   - Windows: Download from https://blog.alivate.com.au/poppler-windows/
 
 2. Install Python dependencies:
    ```
@@ -60,6 +83,23 @@ If you prefer to install components manually:
    ```
 
 ## Usage
+
+**Important:** Before running the application, ensure you have activated the Python virtual environment created during setup.
+
+- **Windows (PowerShell):**
+  ```powershell
+  .\venv\Scripts\Activate.ps1
+  ```
+- **Windows (Command Prompt):**
+  ```cmd
+  .\venv\Scripts\activate.bat
+  ```
+- **Linux/macOS (bash/zsh):**
+  ```bash
+  source venv/bin/activate
+  ```
+
+Once the virtual environment is active, you can run the application.
 
 ### Interactive Mode (Recommended)
 
@@ -130,7 +170,7 @@ python main.py --input ./invoices --output ./processed_invoices --model claude-3
 - The agent uses a vision-capable LLM to analyze the first page of each invoice
 - The LLM extracts vendor names and invoice numbers directly from the visual representation
 - Files are saved with the naming convention HotelCode_Vendor_InvoiceNumber.pdf
-- For Mac users, you may need to add Poppler to your PATH with: `export PATH=/usr/local/Cellar/poppler/xx.xx.x/bin:$PATH`
+- If you installed Poppler manually (not via `setup.sh`, `setup.ps1`, or a package manager like Chocolatey/Homebrew), ensure its `bin` directory is in your system's PATH.
 
 ## New in v1.2.0
 
