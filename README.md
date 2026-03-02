@@ -43,7 +43,7 @@ If you prefer to install components manually:
 1. Install Poppler:
    - Ubuntu/Debian: `sudo apt-get install -y libjpeg-dev libpoppler-cpp-dev poppler-utils`
    - MacOS: `brew install poppler`
-   - Windows: Download from https://blog.alivate.com.au/poppler-windows/
+   - **Windows:** Download the Poppler Windows build from [poppler-windows](https://blog.alivate.com.au/poppler-windows/), extract it, and either add the `bin` folder to your system PATH or set the `POPPLER_PATH` environment variable to that `bin` folder (e.g. `C:\Program Files\poppler-xx\bin`).
 
 2. Install Python dependencies:
    ```
@@ -51,13 +51,13 @@ If you prefer to install components manually:
    ```
 
 3. Set API keys as environment variables (optional, can also be entered interactively):
-   ```
-   # For OpenAI
-   export OPENAI_API_KEY=your-api-key
+   - **Mac/Linux:** `export OPENAI_API_KEY=your-api-key` and/or `export ANTHROPIC_API_KEY=your-api-key`
+   - **Windows (Command Prompt):** `set OPENAI_API_KEY=your-api-key`
+   - **Windows (PowerShell):** `$env:OPENAI_API_KEY="your-api-key"`
 
-   # For Anthropic
-   export ANTHROPIC_API_KEY=your-api-key
-   ```
+### Windows
+
+The app works on Windows. Use **Python 3** (e.g. from python.org or Microsoft Store), install dependencies with `pip install -r requirements.txt`, and install Poppler as above. If Poppler is not on PATH, set `POPPLER_PATH` to the folder that contains `pdftoppm.exe` (e.g. the `bin` folder of the extracted Poppler package). Paths for input/output can use backslashes or forward slashes.
 
 ## Usage
 

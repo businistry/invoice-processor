@@ -174,8 +174,10 @@ class InvoiceProcessor:
     
     def process_invoice(self, pdf_path):
         """Process a single invoice PDF"""
-        # Convert PDF to images
-        pages = convert_from_path(pdf_path)
+        # Convert PDF to images (on Windows, set POPPLER_PATH to Poppler bin folder if needed)
+        poppler_path = os.environ.get("POPPLER_PATH") or None
+        kwargs = {"poppler_path": poppler_path} if poppler_path else {}
+        pages = convert_from_path(pdf_path, **kwargs)
         
         # Use only the first page for analysis (usually contains invoice info)
         first_page = pages[0]
