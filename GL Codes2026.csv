@@ -1,0 +1,88 @@
+Code,Description
+42050,Casual Labor - contract/temp labor
+42400,Cable Television
+43050,"Cleaning & Janitorial Supplies - Trash Bags, Ecolab cleaning chemicals, any other items used to clean rooms/public space"
+43100,"Complimentary Breakfast - Any items used for guest breakfast, plates, silverware, eggs, waffles, sugar, etc"
+43200,"Room/Guest Supplies - Soap, Shampoo, Conditioner, additional guest amenities, dishwashing tabs for extended stays"
+43300,Guest Relocation - walks
+43400,Franchise Reward Promotions - Hilton Honors & Other Brand/Status related freebies
+43450,"Internet Expense - includes Guest Tek, Active Networks and your internet provider"
+43500,Laundry Supplies - Ecolab 3 Laundry Chemicals
+43550,"Linen Replenishment - All Linen (hand towels, bath mats, sheets, duvets, shower curtains, wash cloths, blankets, blanket bags, etc)"
+43700,"Evening Social - This should be only extended stay properties, unless your brand requires"
+43800,Uniforms - Brand standard Uniforms and housekeeping sets
+43900,Travel Agent Commissions - All Travel Agent Invoices
+,
+60100,Telephone Expense - Telephone Invoice
+63200,Telephone Equip. Maintenance
+,
+70600,Meeting Room Expense
+73150,"Guest Laundry Expense - Only items that are used to replenish the Guest Laundry Facilities in the hotel (Soap, Dryer Sheets, etc.)"
+73200,Dry Cleaning Expense - Any Dry Cleaning Invoices that are being billed back to the guest
+73250,Cost of Sales Pantry/Market - Any Pantry Items for resale
+73300,Offsite Parking Expense
+73350,Miscellaneous Expense - Groceries for Extended Stay Hotel Guests
+73400,"Computer Support - Uniguest, Runtriz/iConcierge, Brand Internet Support Other computer support"
+,
+83050,"Office Supplies - Computer paper, First Aid, Ink/Toner"
+83300,"Decorations - Holiday decorations for the hotel: Easter, Halloween, Christmas"
+83320,Dues & Subscriptions - Newspaper subscriptions ONLY
+83450,"Licenses, Fees & Permits - Hotel Licenses, fees, or permits"
+83500,"Employee Relations - Boost employee engagement, gift cards and food for employees"
+83580,"Professional Fees - ads to recruit employees, ADP payroll processing, Hotel Effectiveness, ApTech/Targetvue, etc"
+83700,"Postage and Delivery Charges - Stamps/FedEx, UPS charges"
+83720,Business & Occupancy Tax
+83750,Security - contracted third party security services
+83800,Training - Brand required training classes
+83880,"Travel - Above property or Brand/Hawkeye related travel expenses: food, car rentals, hotel stays"
+83910,Guest Relations - -PLEASE DO NOT USE - this is reserved for brand expenses coded by accounting dept.
+,
+93050,"Advertising - Advertising for the hotel: Expedia, travelads, ect"
+93060,Complimentary Gifts & Services - Freebies for ALL guests
+93070,CVB - Monthly/Quarterly Association dues
+93080,Chamber of Commerce - CVB or other similar dues/memberships
+93090,"Client Relations - Freebies to drive sales thru sales dept and cab rides, uber/lyft, guest transport that we pay for"
+93100,Promo's - cost of any promo's thru hotel - valentine's/honeymoon/Mardi Gras/local tickets package etc
+93110,Business Cards - purchase of business cards from Brand website
+93120,"Collateral - Amadeus, Travelclick, Delphi, etc - Any other sales/revenue software or service (revinate etc)"
+93600,Printing & Stationary - Sales flyers or large print jobs not able to complete at hotel
+,
+123000,Electricity - Electric invoice
+123100,Water & Sewer - Water and/or Sewer invoice
+123150,Gas and Oil - Gas invoice
+123200,Waste Removal - Waste removal invoice
+,
+113050,Building Repairs - Doors / Locks / Windows / Carpet/ Signs
+113100,"Contract Services - Lobby Music, Water Softening, Carpet Cleaning Grease Trap Cleaning if no restaurant/bistro, Public space air freshner; FinTech"
+113150,Auto & Truck Expense - Shuttle expenses/Transportation expenses provided to guests
+113200,Electrical and Mechanical Equi
+113250,"Elevators - Elevator repairs, service contract, elevator licenses/permits/inspections"
+113280,"Engineering Supplies - Filters, Flex cart and individul tools"
+113300,Equipment Rental - Any equipment rental such as lifts
+113380,"Grounds Maintenance & Landscap - mowing, mulching, tree trimming, exterior garbage cans, exterior US/Brand Flags"
+113400,"HVAC Repairs - parts to use for HVAC repairs, "
+113450,Kitchen Equipment Repairs - parts to use for kitchen equipment repairs
+113480,Laundry Equipment Repairs - parts to use for laundry equipment repairs
+113600,"Small Tools & Equipment - light bulbs, nails, caulking"
+113620,Painting & Decorating - sherwin williams etc
+113650,"Plumbing - anything boiler related incl inspections/certs, all other plumbing needs"
+113700,"Snow Removal/Sweeping Fees - snow removal, salt for walkways etc."
+113750,"Swimming Pool - Pool/Spa permits/licenses/inspections.  Chemicals, etc. for pool (ie. Ecolab)"
+113800,"Fire Safety - Hood Cleaning, back up batteries for emergency, Sentrynet/Emergency Signs, Sprinkler Inspections"
+113860,Pest Control - Orkins or items to eleminate pest not included in properties contract with Orkins
+,
+50993,Cost of Food Sales - includes all food and non alcoholic beverage costs
+51200,Cost of Beverage Sales - only cost of alcohol beverages
+,#VALUE!
+,#VALUE!
+,#VALUE!
+53000,"Food Dept Cleaning Supplies - Dishwasher detergents, multi surface cleaner"
+53050,Food Dept Contract Services - grease trap cleaning if you have Restaurant/Bistro
+53100,"Food Dept Equipment Rental - diswasher rental, etc"
+53150,Food Dept Gift Card Sales
+53160,Food Dept Gift Card Redemption
+53350,Food Dept Menus - Menus for the Restaurant/Bistro
+53400,Food Dept Music & Entertainmen
+53500,"Food Dept Operating Supplies - Toliet paper, paper towels"
+53700,Food Dept Training
+53800,Food Dept Uniforms - Uniform pieces for Kitchen/Resturant

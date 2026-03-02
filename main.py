@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
+import csv
 import os
 import argparse
 import re
 import json
 import base64
 import io
+import shutil
 import time
 import getpass
 from pathlib import Path
@@ -16,13 +18,55 @@ import colorama
 from colorama import Fore, Style, Back
 import tqdm
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date
+
+import fitz  # PyMuPDF
+
+__version__ = "1.2.0"
+
+# Hotel/location → hotel code mapping (shared by OpenAI and Anthropic extractors)
+LOCATION_TO_HOTEL_CODE = {
+    "St. Louis, Missouri": "STLMO",
+    "St. Louis, MO": "STLMO",
+    "Saint Louis, Missouri": "STLMO",
+    "Saint Louis, MO": "STLMO",
+    "Birmingham, AL": "BHMCO",
+    "Birmingham, Alabama": "BHMCO",
+    "Baton Rouge, LA": "BTRGI",
+    "Baton Rouge, Louisiana": "BTRGI",
+    "Coralville, IA": None,
+}
+COMPANY_TO_HOTEL_CODE = {
+    "Cast Iron Lodging": "BHMCO",
+    "Saint Pine Lodging": "STLMO",
+    "Hotel Majestic": "STLMO",
+    "Red Stick Lodging": "BTRGI",
+}
 
 # Initialize colorama for colored terminal output
 colorama.init()
 
+def _load_gl_codes(csv_path):
+    """Load valid (code, description) pairs from GL Codes CSV. Skips empty/invalid rows."""
+    path = Path(csv_path)
+    if not path.is_file():
+        return []
+    codes = []
+    with open(path, newline="", encoding="utf-8", errors="replace") as f:
+        for row in csv.DictReader(f):
+            code = (row.get("Code") or "").strip()
+            desc = (row.get("Description") or "").strip()
+            if not code or not desc or code.upper() == "#VALUE!" or desc.upper() == "#VALUE!":
+                continue
+            if re.match(r"^\d+$", code):
+                codes.append((code, desc))
+    return codes
+
+
 class InvoiceProcessor:
     def __init__(self, input_dir, output_dir, model=None, api_key=None, hotel_code="STLMO", 
-                 batch_size=None, preview=False, max_workers=4, auto_detect_hotel=False):
+                 batch_size=None, preview=False, max_workers=4, auto_detect_hotel=False,
+                 gl_codes_path=None):
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
         self.model = model or "gpt-4o"  # Default to gpt-4o if not specified
@@ -33,6 +77,9 @@ class InvoiceProcessor:
         self.preview = preview
         self.max_workers = max_workers
         self.auto_detect_hotel = auto_detect_hotel
+        _gl_path = Path(gl_codes_path or Path(__file__).resolve().parent / "GL Codes2026.csv")
+        self.gl_codes = _load_gl_codes(_gl_path)
+        self._gl_codes_prompt = self._build_gl_codes_prompt()
         
         # Set API keys
         self.openai_api_key = api_key if self.model and self.model.startswith("gpt") else os.environ.get('OPENAI_API_KEY')
@@ -47,7 +94,16 @@ class InvoiceProcessor:
         # Create output directory if it doesn't exist
         if not self.output_dir.exists():
             self.output_dir.mkdir(parents=True)
-    
+
+    def _build_gl_codes_prompt(self):
+        """Build text listing GL codes and descriptions for the LLM prompt."""
+        if not self.gl_codes:
+            return ""
+        lines = ["GL codes (use these to suggest the best match for this invoice):"]
+        for code, desc in self.gl_codes:
+            lines.append(f"  {code}: {desc}")
+        return "\n".join(lines)
+
     def process_invoices(self):
         """Process all PDF invoices in the input directory"""
         pdf_files = list(self.input_dir.glob("*.pdf"))
@@ -141,9 +197,18 @@ class InvoiceProcessor:
             hotel_code = result['detected_hotel_code']
         
         # Create new filename with convention: [HotelCode]_Vendor_InvoiceNumber.pdf
-        new_filename = f"{hotel_code}_{vendor}_{invoice_number}.pdf"
+        base_name = f"{hotel_code}_{vendor}_{invoice_number}"
+        new_filename = f"{base_name}.pdf"
         output_path = self.output_dir / new_filename
-        
+
+        # Avoid overwriting: if file exists, use base_name_1.pdf, base_name_2.pdf, ...
+        if not self.preview and output_path.exists():
+            counter = 1
+            while output_path.exists():
+                new_filename = f"{base_name}_{counter}.pdf"
+                output_path = self.output_dir / new_filename
+                counter += 1
+
         # In preview mode, just return the info without copying the file
         if self.preview:
             return {
@@ -158,11 +223,10 @@ class InvoiceProcessor:
                 "used_hotel_code": hotel_code,
                 "preview_only": True
             }
-        
-        # Copy file to output directory with new name
-        import shutil
-        shutil.copy2(pdf_path, output_path)
-        
+
+        # Write PDF to output with approval block in white space (no separate copy)
+        self._add_approval_block(pdf_path, output_path, result)
+
         return {
             "success": True,
             "original_path": pdf_path,
@@ -180,7 +244,104 @@ class InvoiceProcessor:
         buffered = io.BytesIO()
         image.save(buffered, format="JPEG")
         return base64.b64encode(buffered.getvalue()).decode('utf-8')
-    
+
+    def _placement_to_rect(self, page, placement):
+        """Map LLM placement string (e.g. bottom-right) to a fitz.Rect on the page."""
+        r = page.rect
+        pad = 15
+        w, h = 250, 100  # block size in points
+        placement = (placement or "").strip().lower().replace(" ", "-")
+        regions = {
+            "top-right": fitz.Rect(r.width - w - pad, pad, r.width - pad, pad + h),
+            "top-left": fitz.Rect(pad, pad, pad + w, pad + h),
+            "bottom-right": fitz.Rect(r.width - w - pad, r.height - h - pad, r.width - pad, r.height - pad),
+            "bottom-left": fitz.Rect(pad, r.height - h - pad, pad + w, r.height - pad),
+            "mid-right": fitz.Rect(r.width - w - pad, r.height / 2 - h / 2, r.width - pad, r.height / 2 + h / 2),
+            "mid-left": fitz.Rect(pad, r.height / 2 - h / 2, pad + w, r.height / 2 + h / 2),
+            "mid-middle": fitz.Rect(r.width / 2 - w / 2, r.height / 2 - h / 2, r.width / 2 + w / 2, r.height / 2 + h / 2),
+        }
+        return regions.get(placement, regions["bottom-right"])
+
+    def _add_approval_block(self, pdf_path, output_path, result):
+        """Add GL/approval block where the vision LLM said the white space is."""
+        doc = fitz.open(pdf_path)
+        page = doc[0]
+        placement = result.get("approval_block_placement") or "bottom-right"
+        block_rect = self._placement_to_rect(page, placement)
+        # Text inset from the chosen region
+        line_height = 14
+        fontsize = 11
+        inset_x = 10
+        inset_y = 10
+        x = block_rect.x0 + inset_x
+        y = block_rect.y0 + inset_y
+
+        def fill(val):
+            return str(val).strip() if val else "________"
+
+        amount = fill(result.get("amount"))
+        amount_total = fill(result.get("amount_total"))
+        date_val = date.today().strftime("%Y-%m-%d")  # Always current date on the stamp
+        valid_gl_codes = {str(c).strip() for c, _ in self.gl_codes}
+        suggested_gl = (result.get("suggested_gl_code") or "")
+        suggested_gl = str(suggested_gl).strip() if suggested_gl else ""
+        gl_line = f"GL# {suggested_gl}" if suggested_gl in valid_gl_codes else "GL# ________"
+
+        lines = [
+            gl_line,
+            f"Amount: {amount}",
+            f"Amount Total: {amount_total}",
+            f"Date: {date_val}",
+            "GM Approval: TC",
+        ]
+        # White background and light border so block is legible on any invoice
+        page.draw_rect(
+            block_rect,
+            color=(0.4, 0.4, 0.4),
+            fill=(1, 1, 1),
+            width=0.5,
+        )
+        for i, line in enumerate(lines):
+            page.insert_text(
+                (x, y + i * line_height),
+                line,
+                fontsize=fontsize,
+                fontname="helv",
+                color=(0, 0, 0),
+            )
+        doc.save(output_path)
+        doc.close()
+
+    def _apply_hotel_code_mapping(self, parsed_result):
+        """Apply location/company → hotel code mapping to parsed LLM result (in-place)."""
+        if not parsed_result.get('hotel_location'):
+            return
+        location_text = parsed_result['hotel_location'].lower()
+        # Simple city name matching
+        if 'birmingham' in location_text:
+            parsed_result['detected_hotel_code'] = "BHMCO"
+            parsed_result['matched_location'] = "Birmingham, AL"
+        elif 'louis' in location_text or 'stl' in location_text:
+            parsed_result['detected_hotel_code'] = "STLMO"
+            parsed_result['matched_location'] = "St. Louis, MO"
+        elif 'baton' in location_text or 'rouge' in location_text:
+            parsed_result['detected_hotel_code'] = "BTRGI"
+            parsed_result['matched_location'] = "Baton Rouge, LA"
+        else:
+            for location, code in LOCATION_TO_HOTEL_CODE.items():
+                if code and location.lower() in location_text:
+                    parsed_result['detected_hotel_code'] = code
+                    parsed_result['matched_location'] = location
+                    break
+        # Coralville, IA: resolve by company name
+        if 'coralville' in location_text and parsed_result.get('hotel_company'):
+            for company, code in COMPANY_TO_HOTEL_CODE.items():
+                if company.lower() in parsed_result['hotel_company'].lower():
+                    parsed_result['detected_hotel_code'] = code
+                    parsed_result['company_match'] = company
+                    parsed_result['matched_location'] = f"Coralville, IA ({company})"
+                    break
+
     def extract_info_with_llm(self, image):
         """Extract invoice information using a vision-capable LLM"""
         
@@ -214,29 +375,7 @@ class InvoiceProcessor:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.openai_api_key}"
         }
-        
-        # Define the location mapping
-        location_to_hotel_code = {
-            "St. Louis, Missouri": "STLMO",
-            "St. Louis, MO": "STLMO",
-            "Saint Louis, Missouri": "STLMO",
-            "Saint Louis, MO": "STLMO",
-            "Birmingham, AL": "BHMCO",
-            "Birmingham, Alabama": "BHMCO",
-            "Baton Rouge, LA": "BTRGI",
-            "Baton Rouge, Louisiana": "BTRGI",
-            "Coralville, IA": None  # This will be handled by company name
-        }
-        
-        # Special company name mapping for Coralville address
-        company_to_hotel_code = {
-            "Cast Iron Lodging": "BHMCO",
-            "Saint Pine Lodging": "STLMO",
-            "Hotel Majestic": "STLMO",
-            "Red Stick Lodging": "BTRGI"
-        }
-        
-        # Add hotel code detection to the prompt
+
         payload = {
             "model": self.model,
             "messages": [
@@ -267,10 +406,17 @@ If you find a matching location or company, include it in your response."""
                             "text": """Extract the following information from this invoice:
 1. Vendor/Company Name: The name of the company that issued the invoice
 2. Invoice Number: The unique identifier for this invoice
-3. Hotel Location: If present, identify which hotel location this invoice is from (St. Louis, Birmingham, Baton Rouge, or Coralville)
-4. Hotel Company: If the Coralville, IA address appears, identify which company name is associated with it (Cast Iron Lodging, Saint Pine Lodging, Hotel Majestic, or Red Stick Lodging)
+3. Amount: The line/item amount if a single main amount is shown, or the subtotal (as number or string, e.g. 123.45)
+4. Amount Total / Total Due: The total amount due on the invoice (as number or string)
+5. Invoice Date: The date on the invoice if visible (YYYY-MM-DD or null)
+6. Hotel Location: If present, which hotel location (St. Louis, Birmingham, Baton Rouge, or Coralville)
+7. Hotel Company: If Coralville, IA address appears, which company (Cast Iron Lodging, Saint Pine Lodging, Hotel Majestic, or Red Stick Lodging)
+8. Approval block placement: Look at the invoice layout and choose the best empty/white area to place a small approval block (about 2.5\" wide, 1\" tall). Prefer mid-middle (center of page) when that area is empty, so the block does not cover any text. Reply with exactly one of: top-right, top-left, bottom-right, bottom-left, mid-right, mid-left, mid-middle. Pick the region that is clearly empty and will not cover any text; mid-middle is preferred when the center is blank.
+9. Suggested GL code: Based on the vendor name, line items, and descriptions on the invoice, choose the single GL code from the list below that best matches this invoice. Reply with the code number only (e.g. 42050) or null if none fit well.
 
-Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hotel_location', and 'hotel_company' (if found). If any field is not clearly identifiable, set its value to null. Do not include explanations or any other text outside the JSON."""
+""" + (self._gl_codes_prompt if self._gl_codes_prompt else "(No GL code list loaded.)") + """
+
+Respond ONLY with a valid JSON object with keys: vendor, invoice_number, amount, amount_total, invoice_date, hotel_location, hotel_company, approval_block_placement, suggested_gl_code. suggested_gl_code must be one of the code numbers from the list above or null. No explanations or text outside the JSON."""
                         },
                         {
                             "type": "image_url",
@@ -281,7 +427,7 @@ Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hot
                     ]
                 }
             ],
-            "max_tokens": 300
+            "max_tokens": 400
         }
         
         response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
@@ -291,41 +437,9 @@ Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hot
         content = result['choices'][0]['message']['content']
         
         parsed_result = self._parse_llm_response(content)
-        
-        # Check if hotel_location is present and map it to hotel code
-        if 'hotel_location' in parsed_result and parsed_result['hotel_location']:
-            # Create a simplified version of the location text for better matching
-            location_text = parsed_result['hotel_location'].lower()
-            
-            # Simple city name matching for common cases
-            if 'birmingham' in location_text:
-                parsed_result['detected_hotel_code'] = "BHMCO"
-                parsed_result['matched_location'] = "Birmingham, AL"
-            elif 'louis' in location_text or 'stl' in location_text:
-                parsed_result['detected_hotel_code'] = "STLMO"
-                parsed_result['matched_location'] = "St. Louis, MO"
-            elif 'baton' in location_text or 'rouge' in location_text:
-                parsed_result['detected_hotel_code'] = "BTRGI"
-                parsed_result['matched_location'] = "Baton Rouge, LA"
-            else:
-                # More specific matching if simple matching fails
-                for location, code in location_to_hotel_code.items():
-                    if location.lower() in location_text:
-                        parsed_result['detected_hotel_code'] = code
-                        parsed_result['matched_location'] = location
-                        break
-            
-            # Handle Coralville, IA special case with company name mapping
-            if 'coralville' in location_text and 'hotel_company' in parsed_result and parsed_result['hotel_company']:
-                for company, code in company_to_hotel_code.items():
-                    if company.lower() in parsed_result['hotel_company'].lower():
-                        parsed_result['detected_hotel_code'] = code
-                        parsed_result['company_match'] = company
-                        parsed_result['matched_location'] = f"Coralville, IA ({company})"
-                        break
-        
+        self._apply_hotel_code_mapping(parsed_result)
         return parsed_result
-    
+
     def extract_with_anthropic(self, image):
         """Extract information using Anthropic's API"""
         base64_image = self.encode_image(image)
@@ -335,31 +449,10 @@ Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hot
             "x-api-key": self.anthropic_api_key,
             "anthropic-version": "2023-06-01"
         }
-        
-        # Define the location mapping
-        location_to_hotel_code = {
-            "St. Louis, Missouri": "STLMO",
-            "St. Louis, MO": "STLMO",
-            "Saint Louis, Missouri": "STLMO",
-            "Saint Louis, MO": "STLMO",
-            "Birmingham, AL": "BHMCO",
-            "Birmingham, Alabama": "BHMCO",
-            "Baton Rouge, LA": "BTRGI",
-            "Baton Rouge, Louisiana": "BTRGI",
-            "Coralville, IA": None  # This will be handled by company name
-        }
-        
-        # Special company name mapping for Coralville address
-        company_to_hotel_code = {
-            "Cast Iron Lodging": "BHMCO",
-            "Saint Pine Lodging": "STLMO",
-            "Hotel Majestic": "STLMO",
-            "Red Stick Lodging": "BTRGI"
-        }
-        
+
         payload = {
             "model": self.model,
-            "max_tokens": 300,
+            "max_tokens": 400,
             "messages": [
                 {
                     "role": "user",
@@ -367,23 +460,19 @@ Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hot
                         {
                             "type": "text",
                             "text": """Extract the following information from this invoice:
-1. Vendor/Company Name: The name of the company that issued the invoice
+1. Vendor/Company Name: The company that issued the invoice
 2. Invoice Number: The unique identifier for this invoice
-3. Hotel Location: If present, identify which hotel location this invoice is from (St. Louis, Birmingham, Baton Rouge, or Coralville)
-4. Hotel Company: If the Coralville, IA address appears, identify which company name is associated with it (Cast Iron Lodging, Saint Pine Lodging, Hotel Majestic, or Red Stick Lodging)
+3. Amount: The line/item amount or subtotal if visible (number or string)
+4. Amount Total / Total Due: The total amount due (number or string)
+5. Invoice Date: The date on the invoice if visible (YYYY-MM-DD or null)
+6. Hotel Location: If present, which hotel (St. Louis, Birmingham, Baton Rouge, or Coralville)
+7. Hotel Company: If Coralville, IA address appears, which company (Cast Iron Lodging, Saint Pine Lodging, Hotel Majestic, or Red Stick Lodging)
+8. Approval block placement: Look at the invoice layout and choose the best empty/white area to place a small approval block (about 2.5\" wide, 1\" tall). Prefer mid-middle (center of page) when that area is empty, so the block does not cover any text. Reply with exactly one of: top-right, top-left, bottom-right, bottom-left, mid-right, mid-left, mid-middle. Pick the region that is clearly empty and will not cover any text; mid-middle is preferred when the center is blank.
+9. Suggested GL code: Based on the vendor name, line items, and descriptions on the invoice, choose the single GL code from the list below that best matches this invoice. Reply with the code number only (e.g. 42050) or null if none fit well.
 
-Pay special attention to any hotel or location information in the invoice. Look for addresses, letterheads, or location references that might indicate which hotel this invoice is for. Common locations are:
-- St. Louis, Missouri (or MO)
-- Birmingham, Alabama (or AL)
-- Baton Rouge, Louisiana (or LA)
-- Coralville, Iowa (or IA) - look for address: 2706 James St. Coralville, IA
+""" + (self._gl_codes_prompt if self._gl_codes_prompt else "(No GL code list loaded.)") + """
 
-If the address mentions Coralville, IA, look for these company names:
-- Cast Iron Lodging (code for Birmingham)
-- Saint Pine Lodging or Hotel Majestic (code for St. Louis)
-- Red Stick Lodging (code for Baton Rouge)
-
-Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hotel_location', and 'hotel_company' (if found). If any field is not clearly identifiable, set its value to null. Do not include explanations or any other text outside the JSON."""
+Respond ONLY with a valid JSON object with keys: vendor, invoice_number, amount, amount_total, invoice_date, hotel_location, hotel_company, approval_block_placement, suggested_gl_code. suggested_gl_code must be one of the code numbers from the list above or null. No explanations or text outside the JSON."""
                         },
                         {
                             "type": "image",
@@ -405,41 +494,9 @@ Respond ONLY with a valid JSON object with keys 'vendor', 'invoice_number', 'hot
         content = result['content'][0]['text']
         
         parsed_result = self._parse_llm_response(content)
-        
-        # Check if hotel_location is present and map it to hotel code
-        if 'hotel_location' in parsed_result and parsed_result['hotel_location']:
-            # Create a simplified version of the location text for better matching
-            location_text = parsed_result['hotel_location'].lower()
-            
-            # Simple city name matching for common cases
-            if 'birmingham' in location_text:
-                parsed_result['detected_hotel_code'] = "BHMCO"
-                parsed_result['matched_location'] = "Birmingham, AL"
-            elif 'louis' in location_text or 'stl' in location_text:
-                parsed_result['detected_hotel_code'] = "STLMO"
-                parsed_result['matched_location'] = "St. Louis, MO"
-            elif 'baton' in location_text or 'rouge' in location_text:
-                parsed_result['detected_hotel_code'] = "BTRGI"
-                parsed_result['matched_location'] = "Baton Rouge, LA"
-            else:
-                # More specific matching if simple matching fails
-                for location, code in location_to_hotel_code.items():
-                    if location.lower() in location_text:
-                        parsed_result['detected_hotel_code'] = code
-                        parsed_result['matched_location'] = location
-                        break
-            
-            # Handle Coralville, IA special case with company name mapping
-            if 'coralville' in location_text and 'hotel_company' in parsed_result and parsed_result['hotel_company']:
-                for company, code in company_to_hotel_code.items():
-                    if company.lower() in parsed_result['hotel_company'].lower():
-                        parsed_result['detected_hotel_code'] = code
-                        parsed_result['company_match'] = company
-                        parsed_result['matched_location'] = f"Coralville, IA ({company})"
-                        break
-        
+        self._apply_hotel_code_mapping(parsed_result)
         return parsed_result
-        
+
     def _parse_llm_response(self, content):
         """Parse the response from the LLM and extract JSON data"""
         # Try different parsing strategies in order of preference
@@ -562,9 +619,7 @@ def interactive_mode():
     models = [
         ("1", "gpt-4o", "OpenAI GPT-4o (Recommended)"),
         ("2", "gpt-4-vision-preview", "OpenAI GPT-4 Vision"),
-        ("3", "claude-3-opus-20240229", "Anthropic Claude 3 Opus"),
-        ("4", "claude-3-sonnet-20240229", "Anthropic Claude 3 Sonnet"),
-        ("5", "claude-3-haiku-20240307", "Anthropic Claude 3 Haiku")
+        ("3", "claude-opus-4-6", "Anthropic Claude Opus 4.6"),
     ]
     
     for num, model_id, desc in models:
@@ -671,7 +726,7 @@ def main():
     parser.add_argument("--input", help="Directory containing invoice PDFs")
     parser.add_argument("--output", help="Directory to save processed invoices")
     parser.add_argument("--hotel-code", help="Hotel code for naming convention (e.g., STLMO, BHMCO, BTRGI)")
-    parser.add_argument("--model", help="Model to use (gpt-4o, claude-3-sonnet-20240229, etc.)")
+    parser.add_argument("--model", help="Model to use (gpt-4o, claude-opus-4-6, etc.)")
     parser.add_argument("--api-key", help="API key for the selected model")
     parser.add_argument("--interactive", "-i", action="store_true", help="Run in interactive mode with CLI interface")
     parser.add_argument("--preview", action="store_true", help="Preview mode - don't actually rename files")
@@ -684,8 +739,8 @@ def main():
     
     # Show version info
     if args.version:
-        print(f"Invoice Processor v1.2.0")
-        print(f"Vision AI-powered invoice processing tool")
+        print(f"Invoice Processor {__version__}")
+        print("Vision AI-powered invoice processing tool")
         return
     
     # Run in interactive mode if no arguments provided or --interactive flag is used
