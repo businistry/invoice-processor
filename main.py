@@ -745,13 +745,17 @@ def main():
         print("Vision AI-powered invoice processing tool")
         return
     
-    # Run in interactive mode if no arguments provided or --interactive flag is used
-    if args.interactive or (not args.input and not args.output):
+    # Only use interactive mode when there's a real terminal (not in Docker/Railway/cron)
+    use_interactive = (args.interactive or (not args.input and not args.output)) and sys.stdin.isatty()
+    if use_interactive:
         interactive_mode()
     else:
-        # Use command-line arguments
+        # Non-interactive: require --input and --output (e.g. when deployed or no TTY)
         if not args.input or not args.output:
-            parser.error("--input and --output are required in non-interactive mode")
+            parser.error(
+                "--input and --output are required when not in a terminal (e.g. Railway, Docker). "
+                "Example: python main.py --input ./invoices --output ./processed_invoices"
+            )
         
         hotel_code = args.hotel_code or "STLMO"
         max_workers = max(1, min(8, args.workers))
