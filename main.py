@@ -11,7 +11,6 @@ import time
 import getpass
 from pathlib import Path
 import requests
-from pdf2image import convert_from_path
 from PIL import Image
 import sys
 import colorama
@@ -174,13 +173,13 @@ class InvoiceProcessor:
     
     def process_invoice(self, pdf_path):
         """Process a single invoice PDF"""
-        # Convert PDF to images (on Windows, set POPPLER_PATH to Poppler bin folder if needed)
-        poppler_path = os.environ.get("POPPLER_PATH") or None
-        kwargs = {"poppler_path": poppler_path} if poppler_path else {}
-        pages = convert_from_path(pdf_path, **kwargs)
-        
-        # Use only the first page for analysis (usually contains invoice info)
-        first_page = pages[0]
+        # Convert PDF to images using PyMuPDF (fitz)
+        doc = fitz.open(pdf_path)
+        page = doc[0]
+        pix = page.get_pixmap(dpi=150)
+        mode = "RGBA" if pix.alpha else "RGB"
+        first_page = Image.frombytes(mode, [pix.width, pix.height], pix.samples)
+        doc.close()
         
         # Extract information using vision-capable LLM
         result = self.extract_info_with_llm(first_page)
