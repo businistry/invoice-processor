@@ -17,6 +17,9 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload
 # In-memory store: token -> zip file path
 _downloads = {}
 
+# In-memory store: session_id -> { 'input_dir': path, 'output_dir': path, 'processor': InvoiceProcessor }
+_sessions = {}
+
 
 @app.route('/')
 def index():
@@ -67,8 +70,67 @@ def process_invoices():
             max_workers=4,
             auto_detect_hotel=auto_detect,
             gl_codes_path=str(gl_path),
+            preview=True
         )
         processor.process_invoices()
+
+        session_id = str(uuid.uuid4())
+        _sessions[session_id] = {
+            'input_dir': input_dir,
+            'output_dir': output_dir,
+            'processor': processor
+        }
+
+        return jsonify({
+            'session_id': session_id,
+            'processed': [
+                {
+                    'original': r['original_path'].name,
+                    'renamed': r['filename'],
+                    'vendor': r.get('vendor', ''),
+                    'invoice_number': r.get('invoice_number', ''),
+                    'hotel_code': r.get('used_hotel_code', hotel_code),
+                    'placement': r.get('placement', 'mid-middle'),
+                }
+                for r in processor.processed_files
+            ],
+            'failed': [
+                {'file': r['file'].name, 'error': r['error']}
+                for r in processor.failed_files
+            ]
+        })
+
+    except Exception as e:
+        shutil.rmtree(input_dir, ignore_errors=True)
+        shutil.rmtree(output_dir, ignore_errors=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/finalize', methods=['POST'])
+def finalize_invoices():
+    try:
+        data = request.json
+        session_id = data.get('session_id')
+        placements = data.get('placements', {})
+
+        if not session_id or session_id not in _sessions:
+            return jsonify({'error': 'Invalid or expired session.'}), 400
+
+        session = _sessions.pop(session_id)
+        input_dir = session['input_dir']
+        output_dir = session['output_dir']
+        processor = session['processor']
+
+        for file_info in processor.processed_files:
+            original_path = file_info['original_path']
+            new_path = file_info['new_path']
+
+            # Override placement if provided
+            placement = placements.get(original_path.name, file_info.get('placement', 'mid-middle'))
+            file_info['approval_block_placement'] = placement
+
+            # Add approval block and write to output
+            processor._add_approval_block(original_path, new_path, file_info)
 
         # Zip processed files
         _, zip_path = tempfile.mkstemp(suffix='.zip')
@@ -79,30 +141,17 @@ def process_invoices():
         token = str(uuid.uuid4())
         _downloads[token] = zip_path
 
-        return jsonify({
-            'processed': [
-                {
-                    'original': r['original_path'].name,
-                    'renamed': r['filename'],
-                    'vendor': r.get('vendor', ''),
-                    'invoice_number': r.get('invoice_number', ''),
-                    'hotel_code': r.get('used_hotel_code', hotel_code),
-                }
-                for r in processor.processed_files
-            ],
-            'failed': [
-                {'file': r['file'].name, 'error': r['error']}
-                for r in processor.failed_files
-            ],
-            'download_token': token,
-        })
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-    finally:
         shutil.rmtree(input_dir, ignore_errors=True)
         shutil.rmtree(output_dir, ignore_errors=True)
+
+        return jsonify({'download_token': token})
+
+    except Exception as e:
+        if 'input_dir' in locals():
+            shutil.rmtree(input_dir, ignore_errors=True)
+        if 'output_dir' in locals():
+            shutil.rmtree(output_dir, ignore_errors=True)
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/download/<token>')

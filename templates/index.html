@@ -419,7 +419,7 @@
   <div id="results" class="card">
     <div class="results-header">
       <h2>Results</h2>
-      <button id="downloadBtn">&#8681; Download ZIP</button>
+      <button id="downloadBtn">&#8681; Apply Placements &amp; Download ZIP</button>
     </div>
 
     <div class="table-wrap">
@@ -431,6 +431,7 @@
             <th>Vendor</th>
             <th>Invoice #</th>
             <th>Hotel</th>
+            <th>Placement</th>
           </tr>
         </thead>
         <tbody id="resultsBody"></tbody>
@@ -448,6 +449,7 @@
 <script>
   let selectedFiles = [];
   let downloadToken = null;
+  let currentSessionId = null;
 
   // --- File selection ---
   const dropZone = document.getElementById('dropZone');
@@ -544,7 +546,7 @@
         return;
       }
 
-      downloadToken = data.download_token;
+      currentSessionId = data.session_id;
       renderResults(data);
 
     } catch (err) {
@@ -564,14 +566,28 @@
     const tbody = document.getElementById('resultsBody');
     tbody.innerHTML = '';
 
+    const placements = [
+      "top-right", "top-left", "bottom-right", "bottom-left",
+      "mid-right", "mid-left", "mid-middle"
+    ];
+
     data.processed.forEach(r => {
       const tr = document.createElement('tr');
+
+      let selectHtml = `<select class="placement-select" data-file="${r.original}">`;
+      placements.forEach(p => {
+        const selected = (p === r.placement) ? 'selected' : '';
+        selectHtml += `<option value="${p}" ${selected}>${p}</option>`;
+      });
+      selectHtml += `</select>`;
+
       tr.innerHTML = `
         <td>${r.original}</td>
         <td class="renamed-name">${r.renamed}</td>
         <td>${r.vendor || '—'}</td>
         <td>${r.invoice_number || '—'}</td>
         <td><span class="badge">${r.hotel_code}</span></td>
+        <td>${selectHtml}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -598,9 +614,47 @@
   }
 
   // --- Download ---
-  document.getElementById('downloadBtn').addEventListener('click', () => {
-    if (!downloadToken) return;
-    window.location.href = '/download/' + downloadToken;
+  document.getElementById('downloadBtn').addEventListener('click', async () => {
+    if (!currentSessionId) return;
+
+    const btn = document.getElementById('downloadBtn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Applying & Zipping...';
+    btn.disabled = true;
+
+    // Collect placements
+    const placementData = {};
+    document.querySelectorAll('.placement-select').forEach(select => {
+      placementData[select.dataset.file] = select.value;
+    });
+
+    try {
+      const res = await fetch('/finalize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: currentSessionId,
+          placements: placementData
+        })
+      });
+
+      const data = await res.json();
+      btn.textContent = originalText;
+      btn.disabled = false;
+
+      if (!res.ok || data.error) {
+        showError(data.error || 'An unknown error occurred during finalization.');
+        return;
+      }
+
+      if (data.download_token) {
+        window.location.href = '/download/' + data.download_token;
+      }
+    } catch (err) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+      showError('Network error during finalization: ' + err.message);
+    }
   });
 </script>
 </body>
