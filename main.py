@@ -240,7 +240,8 @@ class InvoiceProcessor:
             "hotel_location": result.get('hotel_location'),
             "detected_hotel_code": result.get('detected_hotel_code'),
             "used_hotel_code": hotel_code,
-            "placement": result.get('approval_block_placement')
+            "placement": result.get('approval_block_placement'),
+            "thumbnail_base64": self.create_thumbnail(first_page)
         }
     
     def encode_image(self, image):
