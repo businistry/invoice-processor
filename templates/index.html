@@ -326,6 +326,65 @@
     }
     .failed-item strong { color: var(--text); }
     .failed-item span { color: var(--error); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: var(--radius);
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .modal-header h3 { margin: 0; font-size: 1.1rem; }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--muted);
+      line-height: 1;
+    }
+    .modal-close:hover { color: var(--error); }
+    .modal-body {
+      overflow-y: auto;
+      text-align: center;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .modal-body img {
+      max-width: 100%;
+      height: auto;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .preview-link {
+      color: var(--primary);
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-left: 8px;
+    }
   </style>
 </head>
 <body>
@@ -444,6 +503,19 @@
     </div>
   </div>
 
+</div>
+
+<!-- Preview Modal -->
+<div id="imageModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">Invoice Preview</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <img id="modalImage" src="" alt="Invoice Preview" />
+    </div>
+  </div>
 </div>
 
 <script>
@@ -571,7 +643,14 @@
       "mid-right", "mid-left", "mid-middle"
     ];
 
+    // Store image data for modal use
+    window.invoiceImages = {};
+
     data.processed.forEach(r => {
+      if (r.thumbnail) {
+        window.invoiceImages[r.original] = r.thumbnail;
+      }
+
       const tr = document.createElement('tr');
 
       let selectHtml = `<select class="placement-select" data-file="${r.original}">`;
@@ -581,8 +660,14 @@
       });
       selectHtml += `</select>`;
 
+      let previewLink = '';
+      if (r.thumbnail) {
+        // use data-file instead of inline to handle quotes in filenames safely
+        previewLink = `<span class="preview-link" data-file="${r.original.replace(/"/g, '&quot;')}" onclick="openModal(this.dataset.file)">View PDF</span>`;
+      }
+
       tr.innerHTML = `
-        <td>${r.original}</td>
+        <td>${r.original} ${previewLink}</td>
         <td class="renamed-name">${r.renamed}</td>
         <td>${r.vendor || '—'}</td>
         <td>${r.invoice_number || '—'}</td>
@@ -654,6 +739,28 @@
       btn.textContent = originalText;
       btn.disabled = false;
       showError('Network error during finalization: ' + err.message);
+    }
+  });
+
+  // --- Modal Logic ---
+  function openModal(filename) {
+    if (window.invoiceImages && window.invoiceImages[filename]) {
+      const modal = document.getElementById('imageModal');
+      document.getElementById('modalImage').src = 'data:image/jpeg;base64,' + window.invoiceImages[filename];
+      document.getElementById('modalTitle').textContent = 'Preview: ' + filename;
+      modal.style.display = 'flex';
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('imageModal').style.display = 'none';
+  }
+
+  // Close modal if clicked outside of modal-content
+  window.addEventListener('click', (e) => {
+    const modal = document.getElementById('imageModal');
+    if (e.target === modal) {
+      closeModal();
     }
   });
 </script>

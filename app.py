@@ -91,6 +91,7 @@ def process_invoices():
                     'invoice_number': r.get('invoice_number', ''),
                     'hotel_code': r.get('used_hotel_code', hotel_code),
                     'placement': r.get('placement', 'mid-middle'),
+                    'thumbnail': r.get('thumbnail_base64', ''),
                 }
                 for r in processor.processed_files
             ],

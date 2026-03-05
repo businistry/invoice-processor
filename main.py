@@ -222,7 +222,9 @@ class InvoiceProcessor:
                 "hotel_location": result.get('hotel_location'),
                 "detected_hotel_code": result.get('detected_hotel_code'),
                 "used_hotel_code": hotel_code,
-                "preview_only": True
+                "placement": result.get('approval_block_placement'),
+                "preview_only": True,
+                "thumbnail_base64": self.create_thumbnail(first_page)
             }
 
         # Write PDF to output with approval block in white space (no separate copy)
@@ -237,13 +239,22 @@ class InvoiceProcessor:
             "filename": new_filename,
             "hotel_location": result.get('hotel_location'),
             "detected_hotel_code": result.get('detected_hotel_code'),
-            "used_hotel_code": hotel_code
+            "used_hotel_code": hotel_code,
+            "placement": result.get('approval_block_placement')
         }
     
     def encode_image(self, image):
         """Encode a PIL image to base64 string"""
         buffered = io.BytesIO()
         image.save(buffered, format="JPEG")
+        return base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+    def create_thumbnail(self, image):
+        """Resize a PIL image to be used as a thumbnail and encode to base64 string"""
+        thumb = image.copy()
+        thumb.thumbnail((800, 1000))
+        buffered = io.BytesIO()
+        thumb.save(buffered, format="JPEG", quality=85)
         return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
     def _placement_to_rect(self, page, placement):
