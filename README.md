@@ -85,8 +85,12 @@ Available options:
 --batch-size SIZE         Process files in batches of this size
 --workers N               Number of parallel workers (1-8, default: 1)
 --auto-detect             Auto-detect hotel location from invoice content
+--placement PLACEMENT     Global approval block placement override for all invoices
 --version, -v             Show version information
 ```
+
+Valid placement values for `--placement`:
+`top-right`, `top-left`, `bottom-right`, `bottom-left`, `mid-right`, `mid-left`, `mid-middle`
 
 ### Examples
 

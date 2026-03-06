@@ -305,6 +305,23 @@
       color: #1d4ed8;
     }
 
+    .preview-link {
+      color: var(--primary);
+      text-decoration: underline;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .preview-link:disabled {
+      color: var(--muted);
+      cursor: default;
+      text-decoration: none;
+      font-weight: 400;
+    }
+
     /* Failed section */
     #failedSection {
       display: none;
@@ -326,6 +343,79 @@
     }
     .failed-item strong { color: var(--text); }
     .failed-item span { color: var(--error); }
+
+    #previewModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.75);
+      z-index: 1000;
+      padding: 24px;
+      align-items: center;
+      justify-content: center;
+    }
+    #previewModal.open {
+      display: flex;
+    }
+    .modal-card {
+      background: #fff;
+      width: min(960px, 96vw);
+      max-height: 92vh;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: #f8fafc;
+    }
+    .modal-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-right: 10px;
+    }
+    .modal-close {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 9px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+    .modal-body {
+      padding: 12px;
+      overflow: auto;
+      background: #f8fafc;
+    }
+    #previewImage {
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      display: block;
+      cursor: crosshair;
+    }
+    .preview-hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+    #previewPlacement {
+      color: var(--primary);
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -432,6 +522,7 @@
             <th>Invoice #</th>
             <th>Hotel</th>
             <th>Placement</th>
+            <th>Preview</th>
           </tr>
         </thead>
         <tbody id="resultsBody"></tbody>
@@ -444,18 +535,48 @@
     </div>
   </div>
 
+  <div id="previewModal" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div id="previewTitle" class="modal-title">Invoice Preview</div>
+        <button type="button" id="closePreviewModal" class="modal-close">Close</button>
+      </div>
+      <div class="modal-body">
+        <p class="preview-hint">Click the invoice image to set placement. Selected: <span id="previewPlacement">&mdash;</span></p>
+        <img id="previewImage" alt="Invoice first page preview" />
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
   let selectedFiles = [];
   let downloadToken = null;
   let currentSessionId = null;
+  let previewThumbnails = {};
+  let activePreviewFileKey = null;
+  let clickPlacementPoints = {};
 
   // --- File selection ---
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
   const fileList  = document.getElementById('fileList');
   const processBtn = document.getElementById('processBtn');
+  const previewModal = document.getElementById('previewModal');
+  const previewImage = document.getElementById('previewImage');
+  const previewTitle = document.getElementById('previewTitle');
+  const previewPlacement = document.getElementById('previewPlacement');
+
+  const placementAnchors = {
+    'top-left': { x: 0.17, y: 0.12 },
+    'top-right': { x: 0.83, y: 0.12 },
+    'mid-left': { x: 0.17, y: 0.50 },
+    'mid-middle': { x: 0.50, y: 0.50 },
+    'mid-right': { x: 0.83, y: 0.50 },
+    'bottom-left': { x: 0.17, y: 0.88 },
+    'bottom-right': { x: 0.83, y: 0.88 }
+  };
 
   document.getElementById('browseLink').addEventListener('click', () => fileInput.click());
 
@@ -562,9 +683,76 @@
     el.style.display = 'block';
   }
 
+  function escapeHtml(text) {
+    return String(text)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function getPlacementSelectByFileKey(fileKey) {
+    const selects = document.querySelectorAll('.placement-select');
+    for (const select of selects) {
+      if (select.dataset.fileKey === fileKey) {
+        return select;
+      }
+    }
+    return null;
+  }
+
+  function pickNearestPlacement(normX, normY) {
+    let bestPlacement = 'mid-middle';
+    let bestDistance = Infinity;
+    Object.entries(placementAnchors).forEach(([placement, anchor]) => {
+      const dx = normX - anchor.x;
+      const dy = normY - anchor.y;
+      const dist = dx * dx + dy * dy;
+      if (dist < bestDistance) {
+        bestDistance = dist;
+        bestPlacement = placement;
+      }
+    });
+    return bestPlacement;
+  }
+
+  function updatePreviewPlacementLabel(fileKey) {
+    const select = getPlacementSelectByFileKey(fileKey);
+    if (!select) {
+      previewPlacement.textContent = '\u2014';
+      return;
+    }
+    const clicked = clickPlacementPoints[fileKey];
+    previewPlacement.textContent = clicked ? `${select.value} (clicked)` : select.value;
+  }
+
+  function openPreviewModal(fileKey) {
+    const b64 = previewThumbnails[fileKey];
+    if (!b64) {
+      showError('Preview image not available for this invoice.');
+      return;
+    }
+    const fileName = decodeURIComponent(fileKey);
+    activePreviewFileKey = fileKey;
+    previewImage.src = `data:image/jpeg;base64,${b64}`;
+    previewTitle.textContent = `Preview: ${fileName}`;
+    updatePreviewPlacementLabel(fileKey);
+    previewModal.classList.add('open');
+  }
+
+  function closePreviewModal() {
+    previewModal.classList.remove('open');
+    previewImage.src = '';
+    activePreviewFileKey = null;
+    previewPlacement.textContent = '\u2014';
+  }
+
   function renderResults(data) {
     const tbody = document.getElementById('resultsBody');
     tbody.innerHTML = '';
+    previewThumbnails = {};
+    clickPlacementPoints = {};
 
     const placements = [
       "top-right", "top-left", "bottom-right", "bottom-left",
@@ -573,21 +761,36 @@
 
     data.processed.forEach(r => {
       const tr = document.createElement('tr');
+      const escapedOriginal = escapeHtml(r.original);
+      const escapedRenamed = escapeHtml(r.renamed || '');
+      const escapedVendor = escapeHtml(r.vendor || '—');
+      const escapedInvoice = escapeHtml(r.invoice_number || '—');
+      const escapedHotelCode = escapeHtml(r.hotel_code || '—');
+      const fileKey = encodeURIComponent(r.original);
 
-      let selectHtml = `<select class="placement-select" data-file="${r.original}">`;
+      let selectHtml = `<select class="placement-select" data-file-key="${fileKey}">`;
       placements.forEach(p => {
         const selected = (p === r.placement) ? 'selected' : '';
         selectHtml += `<option value="${p}" ${selected}>${p}</option>`;
       });
       selectHtml += `</select>`;
 
+      const hasThumb = Boolean(r.thumbnail_base64);
+      if (hasThumb) {
+        previewThumbnails[fileKey] = r.thumbnail_base64;
+      }
+      const previewHtml = hasThumb
+        ? `<button type="button" class="preview-link" data-preview-file-key="${fileKey}">View PDF</button>`
+        : `<button type="button" class="preview-link" disabled>No preview</button>`;
+
       tr.innerHTML = `
-        <td>${r.original}</td>
-        <td class="renamed-name">${r.renamed}</td>
-        <td>${r.vendor || '—'}</td>
-        <td>${r.invoice_number || '—'}</td>
-        <td><span class="badge">${r.hotel_code}</span></td>
+        <td>${escapedOriginal}</td>
+        <td class="renamed-name">${escapedRenamed}</td>
+        <td>${escapedVendor}</td>
+        <td>${escapedInvoice}</td>
+        <td><span class="badge">${escapedHotelCode}</span></td>
         <td>${selectHtml}</td>
+        <td>${previewHtml}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -624,8 +827,15 @@
 
     // Collect placements
     const placementData = {};
+    const clickPointData = {};
     document.querySelectorAll('.placement-select').forEach(select => {
-      placementData[select.dataset.file] = select.value;
+      const fileName = decodeURIComponent(select.dataset.fileKey);
+      placementData[fileName] = select.value;
+
+      const point = clickPlacementPoints[select.dataset.fileKey];
+      if (point) {
+        clickPointData[fileName] = point;
+      }
     });
 
     try {
@@ -634,7 +844,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           session_id: currentSessionId,
-          placements: placementData
+          placements: placementData,
+          click_points: clickPointData
         })
       });
 
@@ -654,6 +865,50 @@
       btn.textContent = originalText;
       btn.disabled = false;
       showError('Network error during finalization: ' + err.message);
+    }
+  });
+
+  document.getElementById('resultsBody').addEventListener('click', e => {
+    const btn = e.target.closest('[data-preview-file-key]');
+    if (!btn) return;
+    openPreviewModal(btn.getAttribute('data-preview-file-key'));
+  });
+
+  document.getElementById('resultsBody').addEventListener('change', e => {
+    if (!e.target.classList.contains('placement-select')) return;
+    // Manual dropdown change should override any prior clicked coordinate for this file.
+    delete clickPlacementPoints[e.target.dataset.fileKey];
+    if (activePreviewFileKey && e.target.dataset.fileKey === activePreviewFileKey) {
+      previewPlacement.textContent = e.target.value;
+    }
+  });
+
+  previewImage.addEventListener('click', e => {
+    if (!activePreviewFileKey) return;
+    const select = getPlacementSelectByFileKey(activePreviewFileKey);
+    if (!select) return;
+
+    const rect = previewImage.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const normX = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    const normY = Math.min(Math.max((e.clientY - rect.top) / rect.height, 0), 1);
+
+    const placement = pickNearestPlacement(normX, normY);
+    clickPlacementPoints[activePreviewFileKey] = { x: normX, y: normY };
+    select.value = placement;
+    previewPlacement.textContent = `${placement} (clicked)`;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    clickPlacementPoints[activePreviewFileKey] = { x: normX, y: normY };
+  });
+
+  document.getElementById('closePreviewModal').addEventListener('click', closePreviewModal);
+  previewModal.addEventListener('click', e => {
+    if (e.target === previewModal) closePreviewModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && previewModal.classList.contains('open')) {
+      closePreviewModal();
     }
   });
 </script>

@@ -23,6 +23,16 @@ import fitz  # PyMuPDF
 
 __version__ = "1.2.0"
 
+VALID_PLACEMENTS = {
+    "top-right",
+    "top-left",
+    "bottom-right",
+    "bottom-left",
+    "mid-right",
+    "mid-left",
+    "mid-middle",
+}
+
 # Hotel/location → hotel code mapping (shared by OpenAI and Anthropic extractors)
 LOCATION_TO_HOTEL_CODE = {
     "St. Louis, Missouri": "STLMO",
@@ -65,7 +75,7 @@ def _load_gl_codes(csv_path):
 class InvoiceProcessor:
     def __init__(self, input_dir, output_dir, model=None, api_key=None, hotel_code="STLMO", 
                  batch_size=None, preview=False, max_workers=4, auto_detect_hotel=False,
-                 gl_codes_path=None):
+                 gl_codes_path=None, global_placement=None):
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
         self.model = model or "gpt-4o"  # Default to gpt-4o if not specified
@@ -76,6 +86,7 @@ class InvoiceProcessor:
         self.preview = preview
         self.max_workers = max_workers
         self.auto_detect_hotel = auto_detect_hotel
+        self.global_placement = self._normalize_placement(global_placement) if global_placement else None
         _gl_path = Path(gl_codes_path or Path(__file__).resolve().parent / "GL Codes2026.csv")
         self.gl_codes = _load_gl_codes(_gl_path)
         self._gl_codes_prompt = self._build_gl_codes_prompt()
@@ -180,9 +191,14 @@ class InvoiceProcessor:
         mode = "RGBA" if pix.alpha else "RGB"
         first_page = Image.frombytes(mode, [pix.width, pix.height], pix.samples)
         doc.close()
+
+        thumbnail_b64 = self._build_preview_thumbnail(first_page)
         
         # Extract information using vision-capable LLM
         result = self.extract_info_with_llm(first_page)
+        ai_placement = self._normalize_placement(result.get("approval_block_placement"))
+        final_placement = self.global_placement or ai_placement
+        result["approval_block_placement"] = final_placement
         
         if not result.get('vendor') or not result.get('invoice_number'):
             error_msg = f"Could not extract vendor or invoice number from {pdf_path.name}"
@@ -222,6 +238,9 @@ class InvoiceProcessor:
                 "hotel_location": result.get('hotel_location'),
                 "detected_hotel_code": result.get('detected_hotel_code'),
                 "used_hotel_code": hotel_code,
+                "approval_block_placement": final_placement,
+                "ai_approval_block_placement": ai_placement,
+                "preview_thumbnail_base64": thumbnail_b64,
                 "preview_only": True
             }
 
@@ -237,7 +256,9 @@ class InvoiceProcessor:
             "filename": new_filename,
             "hotel_location": result.get('hotel_location'),
             "detected_hotel_code": result.get('detected_hotel_code'),
-            "used_hotel_code": hotel_code
+            "used_hotel_code": hotel_code,
+            "approval_block_placement": final_placement,
+            "ai_approval_block_placement": ai_placement,
         }
     
     def encode_image(self, image):
@@ -245,6 +266,24 @@ class InvoiceProcessor:
         buffered = io.BytesIO()
         image.save(buffered, format="JPEG")
         return base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+    def _build_preview_thumbnail(self, image, max_width=900):
+        """Create a resized JPEG thumbnail from the first invoice page and return base64 text."""
+        if image is None:
+            return None
+
+        thumb = image.copy()
+        if thumb.mode not in ("RGB", "L"):
+            thumb = thumb.convert("RGB")
+
+        width, height = thumb.size
+        if width > max_width:
+            ratio = max_width / float(width)
+            thumb = thumb.resize((max_width, int(height * ratio)), Image.Resampling.LANCZOS)
+
+        buffered = io.BytesIO()
+        thumb.save(buffered, format="JPEG", quality=80, optimize=True)
+        return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     def _placement_to_rect(self, page, placement):
         """Map LLM placement string (e.g. bottom-right) to a fitz.Rect on the page."""
@@ -263,12 +302,50 @@ class InvoiceProcessor:
         }
         return regions.get(placement, regions["bottom-right"])
 
+    def _point_to_rect(self, page, point_x, point_y):
+        """Map normalized click point (0..1, 0..1) to a bounded fitz.Rect centered near that point."""
+        r = page.rect
+        pad = 15
+        w, h = 250, 100
+
+        try:
+            nx = float(point_x)
+            ny = float(point_y)
+        except (TypeError, ValueError):
+            return self._placement_to_rect(page, "mid-middle")
+
+        nx = min(max(nx, 0.0), 1.0)
+        ny = min(max(ny, 0.0), 1.0)
+
+        cx = r.width * nx
+        cy = r.height * ny
+
+        x0 = cx - (w / 2)
+        y0 = cy - (h / 2)
+
+        # Keep the block inside printable page bounds with a small margin.
+        x0 = min(max(x0, pad), max(pad, r.width - w - pad))
+        y0 = min(max(y0, pad), max(pad, r.height - h - pad))
+
+        return fitz.Rect(x0, y0, x0 + w, y0 + h)
+
+    def _normalize_placement(self, placement):
+        """Normalize user/LLM placement values and fall back to mid-middle when invalid."""
+        normalized = (placement or "").strip().lower().replace(" ", "-")
+        if normalized in VALID_PLACEMENTS:
+            return normalized
+        return "mid-middle"
+
     def _add_approval_block(self, pdf_path, output_path, result):
         """Add GL/approval block where the vision LLM said the white space is."""
         doc = fitz.open(pdf_path)
         page = doc[0]
-        placement = result.get("approval_block_placement") or "bottom-right"
-        block_rect = self._placement_to_rect(page, placement)
+        click_point = result.get("approval_block_point")
+        if isinstance(click_point, dict) and "x" in click_point and "y" in click_point:
+            block_rect = self._point_to_rect(page, click_point.get("x"), click_point.get("y"))
+        else:
+            placement = result.get("approval_block_placement") or "bottom-right"
+            block_rect = self._placement_to_rect(page, placement)
         # Text inset from the chosen region
         line_height = 14
         fontsize = 11
@@ -613,9 +690,19 @@ def interactive_mode():
     
     parallel_input = input(f"Number of parallel workers (1-8) [1]: ").strip()
     max_workers = max(1, min(8, int(parallel_input))) if parallel_input.isdigit() else 1
+
+    print(f"\n{Fore.YELLOW}Step 5: Approval block placement{Style.RESET_ALL}")
+    print("Leave blank to use AI suggestion per invoice.")
+    placement_input = input(
+        "Global placement override [AI suggestion]: "
+    ).strip()
+    global_placement = placement_input.lower().replace(" ", "-") if placement_input else None
+    if global_placement and global_placement not in VALID_PLACEMENTS:
+        print(f"{Fore.RED}Invalid placement. Use one of: {', '.join(sorted(VALID_PLACEMENTS))}{Style.RESET_ALL}")
+        return
     
-    # Step 5: Select LLM model
-    print(f"\n{Fore.YELLOW}Step 5: Select the AI model to use{Style.RESET_ALL}")
+    # Step 6: Select LLM model
+    print(f"\n{Fore.YELLOW}Step 6: Select the AI model to use{Style.RESET_ALL}")
     print(f"{Fore.CYAN}Available models:{Style.RESET_ALL}")
     models = [
         ("1", "gpt-4o", "OpenAI GPT-4o (Recommended)"),
@@ -630,13 +717,13 @@ def interactive_mode():
     model_dict = {num: model_id for num, model_id, _ in models}
     model = model_dict.get(model_choice, "gpt-4o")
     
-    # Step 6: Get API key if needed
+    # Step 7: Get API key if needed
     api_key = None
     if model.startswith("gpt") and not os.environ.get('OPENAI_API_KEY'):
-        print(f"\n{Fore.YELLOW}Step 6: Enter your OpenAI API key{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}Step 7: Enter your OpenAI API key{Style.RESET_ALL}")
         api_key = getpass.getpass("OpenAI API Key: ")
     elif model.startswith("claude") and not os.environ.get('ANTHROPIC_API_KEY'):
-        print(f"\n{Fore.YELLOW}Step 6: Enter your Anthropic API key{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}Step 7: Enter your Anthropic API key{Style.RESET_ALL}")
         api_key = getpass.getpass("Anthropic API Key: ")
     
     # Final step: Confirm and run
@@ -648,6 +735,7 @@ def interactive_mode():
     else:
         print(f"  Hotel code: {Fore.CYAN}{hotel_code}{Style.RESET_ALL}")
     print(f"  Model: {Fore.CYAN}{model}{Style.RESET_ALL}")
+    print(f"  Placement: {Fore.CYAN}{global_placement or 'AI suggestion per invoice'}{Style.RESET_ALL}")
     print(f"  Preview mode: {Fore.CYAN}{'On' if preview_mode else 'Off'}{Style.RESET_ALL}")
     if batch_size:
         print(f"  Batch size: {Fore.CYAN}{batch_size}{Style.RESET_ALL}")
@@ -667,7 +755,8 @@ def interactive_mode():
                 batch_size=batch_size,
                 preview=preview_mode,
                 max_workers=max_workers,
-                auto_detect_hotel=auto_detect
+                auto_detect_hotel=auto_detect,
+                global_placement=global_placement,
             )
             
             # Start processing
@@ -734,6 +823,11 @@ def main():
     parser.add_argument("--batch-size", type=int, help="Process files in batches of this size")
     parser.add_argument("--workers", type=int, default=1, help="Number of parallel workers (1-8)")
     parser.add_argument("--auto-detect", action="store_true", help="Auto-detect hotel location from invoice content")
+    parser.add_argument(
+        "--placement",
+        choices=sorted(VALID_PLACEMENTS),
+        help="Global approval block placement override for all invoices",
+    )
     parser.add_argument("--version", "-v", action="store_true", help="Show version information")
     
     args = parser.parse_args()
@@ -769,7 +863,8 @@ def main():
                 batch_size=args.batch_size,
                 preview=args.preview,
                 max_workers=max_workers,
-                auto_detect_hotel=args.auto_detect
+                auto_detect_hotel=args.auto_detect,
+                global_placement=args.placement,
             )
             
             processor.process_invoices()

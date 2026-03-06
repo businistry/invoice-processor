@@ -90,7 +90,9 @@ def process_invoices():
                     'vendor': r.get('vendor', ''),
                     'invoice_number': r.get('invoice_number', ''),
                     'hotel_code': r.get('used_hotel_code', hotel_code),
-                    'placement': r.get('placement', 'mid-middle'),
+                    'placement': r.get('approval_block_placement', 'mid-middle'),
+                    'ai_placement': r.get('ai_approval_block_placement', 'mid-middle'),
+                    'thumbnail_base64': r.get('preview_thumbnail_base64'),
                 }
                 for r in processor.processed_files
             ],
@@ -112,6 +114,7 @@ def finalize_invoices():
         data = request.json
         session_id = data.get('session_id')
         placements = data.get('placements', {})
+        click_points = data.get('click_points', {})
 
         if not session_id or session_id not in _sessions:
             return jsonify({'error': 'Invalid or expired session.'}), 400
@@ -124,10 +127,20 @@ def finalize_invoices():
         for file_info in processor.processed_files:
             original_path = file_info['original_path']
             new_path = file_info['new_path']
+            point = click_points.get(original_path.name)
 
             # Override placement if provided
-            placement = placements.get(original_path.name, file_info.get('placement', 'mid-middle'))
+            placement = placements.get(original_path.name, file_info.get('approval_block_placement', 'mid-middle'))
             file_info['approval_block_placement'] = placement
+
+            # If user clicked in preview, place block at that exact normalized point.
+            if isinstance(point, dict) and 'x' in point and 'y' in point:
+                file_info['approval_block_point'] = {
+                    'x': point.get('x'),
+                    'y': point.get('y'),
+                }
+            else:
+                file_info.pop('approval_block_point', None)
 
             # Add approval block and write to output
             processor._add_approval_block(original_path, new_path, file_info)
