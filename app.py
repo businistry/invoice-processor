@@ -36,6 +36,7 @@ def process_invoices():
     hotel_code = request.form.get('hotel_code', 'STLMO').strip().upper()
     auto_detect = request.form.get('auto_detect', 'false') == 'true'
     api_key = request.form.get('api_key', '').strip() or None
+    stamp_template = request.files.get('stamp_template')
 
     # Fall back to environment variable
     if not api_key:
@@ -52,13 +53,27 @@ def process_invoices():
     if not pdf_files:
         return jsonify({'error': 'No PDF files found in upload.'}), 400
 
+    if stamp_template and stamp_template.filename:
+        stamp_name = secure_filename(stamp_template.filename)
+        ext = os.path.splitext(stamp_name)[1].lower()
+        if ext not in {'.png', '.jpg', '.jpeg'}:
+            return jsonify({'error': 'Stamp template must be a PNG or JPG image.'}), 400
+
     input_dir = tempfile.mkdtemp()
     output_dir = tempfile.mkdtemp()
+    stamp_template_path = None
 
     try:
         for f in pdf_files:
             safe_name = secure_filename(f.filename)
             f.save(os.path.join(input_dir, safe_name))
+
+
+        if stamp_template and stamp_template.filename:
+            stamp_name = secure_filename(stamp_template.filename)
+            ext = os.path.splitext(stamp_name)[1].lower()
+            stamp_template_path = os.path.join(input_dir, f"stamp_template{ext}")
+            stamp_template.save(stamp_template_path)
 
         gl_path = Path(__file__).parent / 'GL Codes2026.csv'
         processor = InvoiceProcessor(
@@ -70,7 +85,8 @@ def process_invoices():
             max_workers=4,
             auto_detect_hotel=auto_detect,
             gl_codes_path=str(gl_path),
-            preview=True
+            preview=True,
+            stamp_template_path=stamp_template_path
         )
         processor.process_invoices()
 

@@ -75,7 +75,7 @@ def _load_gl_codes(csv_path):
 class InvoiceProcessor:
     def __init__(self, input_dir, output_dir, model=None, api_key=None, hotel_code="STLMO", 
                  batch_size=None, preview=False, max_workers=4, auto_detect_hotel=False,
-                 gl_codes_path=None, global_placement=None):
+                 gl_codes_path=None, global_placement=None, stamp_template_path=None):
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
         self.model = model or "gpt-4o"  # Default to gpt-4o if not specified
@@ -90,6 +90,7 @@ class InvoiceProcessor:
         _gl_path = Path(gl_codes_path or Path(__file__).resolve().parent / "GL Codes2026.csv")
         self.gl_codes = _load_gl_codes(_gl_path)
         self._gl_codes_prompt = self._build_gl_codes_prompt()
+        self.stamp_template_path = Path(stamp_template_path) if stamp_template_path else None
         
         # Set API keys
         self.openai_api_key = api_key if self.model and self.model.startswith("gpt") else os.environ.get('OPENAI_API_KEY')
@@ -345,7 +346,7 @@ class InvoiceProcessor:
         return "mid-middle"
 
     def _add_approval_block(self, pdf_path, output_path, result):
-        """Add GL/approval block where the vision LLM said the white space is."""
+        """Add GL/approval stamp annotation where the vision LLM said the white space is."""
         doc = fitz.open(pdf_path)
         page = doc[0]
         click_point = result.get("approval_block_point")
@@ -380,21 +381,57 @@ class InvoiceProcessor:
             f"Date: {date_val}",
             "GM Approval: TC",
         ]
-        # White background and light border so block is legible on any invoice
-        page.draw_rect(
-            block_rect,
-            color=(0.4, 0.4, 0.4),
-            fill=(1, 1, 1),
-            width=0.5,
-        )
-        for i, line in enumerate(lines):
-            page.insert_text(
-                (x, y + i * line_height),
-                line,
-                fontsize=fontsize,
-                fontname="helv",
-                color=(0, 0, 0),
-            )
+        stamp_text = "\n".join(lines)
+
+        has_custom_stamp = self.stamp_template_path and self.stamp_template_path.exists()
+
+        # If the user uploaded a stamp template image, place that stamp and fill its text fields.
+        if has_custom_stamp:
+            page.insert_image(block_rect, filename=str(self.stamp_template_path), keep_proportion=False, overlay=True)
+            for i, line in enumerate(lines):
+                page.insert_text(
+                    (x, y + i * line_height),
+                    line,
+                    fontsize=fontsize,
+                    fontname="helv",
+                    color=(0, 0, 0),
+                )
+        else:
+            # Add a proper PDF annotation so downstream viewers can treat this as a stamp-style markup.
+            # If annotation creation fails for any reason, fall back to drawing the text block directly.
+            try:
+                annot = page.add_freetext_annot(
+                    block_rect,
+                    stamp_text,
+                    fontsize=fontsize,
+                    fontname="Helv",
+                    text_color=(0, 0, 0),
+                    border_color=(0.4, 0.4, 0.4),
+                    fill_color=(1, 1, 1),
+                    align=fitz.TEXT_ALIGN_LEFT,
+                )
+                annot.set_name("ApprovalStamp")
+                annot.set_info(
+                    title="Invoice Processor",
+                    subject="Approval Stamp",
+                    content=stamp_text,
+                )
+                annot.update()
+            except Exception:
+                page.draw_rect(
+                    block_rect,
+                    color=(0.4, 0.4, 0.4),
+                    fill=(1, 1, 1),
+                    width=0.5,
+                )
+                for i, line in enumerate(lines):
+                    page.insert_text(
+                        (x, y + i * line_height),
+                        line,
+                        fontsize=fontsize,
+                        fontname="helv",
+                        color=(0, 0, 0),
+                    )
         doc.save(output_path)
         doc.close()
 

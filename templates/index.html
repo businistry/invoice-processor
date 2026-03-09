@@ -140,7 +140,7 @@
       font-weight: 600;
       color: var(--text);
     }
-    .field select, .field input[type="password"], .field input[type="text"] {
+    .field select, .field input[type="password"], .field input[type="text"], .field input[type="file"] {
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 8px 10px;
@@ -488,6 +488,12 @@
             <p class="hint">Enter the API key for the selected model above.</p>
           {% endif %}
         </div>
+
+        <div class="field">
+          <label>Custom Stamp Template (optional)</label>
+          <input type="file" id="stampTemplate" accept=".png,.jpg,.jpeg,image/png,image/jpeg" />
+          <p class="hint">Upload your own stamp image and the app will fill it with GL/amount/date/approval fields.</p>
+        </div>
       </div>
 
     </div>
@@ -641,6 +647,7 @@
     const autoDetect = document.getElementById('autoDetect').checked;
     const model      = document.getElementById('model').value;
     const apiKey     = document.getElementById('apiKey').value.trim();
+    const stampTemplate = document.getElementById('stampTemplate').files[0];
 
     const formData = new FormData();
     selectedFiles.forEach(f => formData.append('files', f));
@@ -648,6 +655,7 @@
     formData.append('auto_detect', autoDetect ? 'true' : 'false');
     formData.append('model', model);
     if (apiKey) formData.append('api_key', apiKey);
+    if (stampTemplate) formData.append('stamp_template', stampTemplate);
 
     // UI state: loading
     processBtn.disabled = true;
