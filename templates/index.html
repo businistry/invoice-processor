@@ -171,6 +171,12 @@
       font-size: 0.88rem;
       cursor: pointer;
     }
+    .checkbox-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
     .radio-group input[type="radio"], .checkbox-label input[type="checkbox"] {
       accent-color: var(--primary);
       width: 14px;
@@ -457,10 +463,16 @@
         <div id="customCodeWrap" style="display:none">
           <input type="text" id="customCode" placeholder="e.g. NYCNY" maxlength="10" />
         </div>
-        <label class="checkbox-label" style="margin-top:10px;">
-          <input type="checkbox" id="autoDetect" />
-          Auto-detect from invoice content
-        </label>
+        <div class="checkbox-stack">
+          <label class="checkbox-label">
+            <input type="checkbox" id="autoDetect" />
+            Auto-detect from invoice content
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="skipAnnotations" />
+            Download renamed invoices without approval annotations
+          </label>
+        </div>
         <p id="autoDetectNote">Hotel code radios will be used as fallback if detection fails.</p>
       </div>
 
@@ -515,7 +527,7 @@
   <div id="results" class="card">
     <div class="results-header">
       <h2>Results</h2>
-      <button id="downloadBtn">&#8681; Apply Placements &amp; Download ZIP</button>
+      <button id="downloadBtn">&#8681; Download ZIP</button>
     </div>
 
     <div class="table-wrap">
@@ -830,7 +842,8 @@
 
     const btn = document.getElementById('downloadBtn');
     const originalText = btn.textContent;
-    btn.textContent = 'Applying & Zipping...';
+    const applyAnnotations = !document.getElementById('skipAnnotations').checked;
+    btn.textContent = applyAnnotations ? 'Applying & Zipping...' : 'Preparing ZIP...';
     btn.disabled = true;
 
     // Collect placements
@@ -853,7 +866,8 @@
         body: JSON.stringify({
           session_id: currentSessionId,
           placements: placementData,
-          click_points: clickPointData
+          click_points: clickPointData,
+          apply_annotations: applyAnnotations
         })
       });
 

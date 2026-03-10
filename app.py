@@ -131,6 +131,7 @@ def finalize_invoices():
         session_id = data.get('session_id')
         placements = data.get('placements', {})
         click_points = data.get('click_points', {})
+        apply_annotations = data.get('apply_annotations', True)
 
         if not session_id or session_id not in _sessions:
             return jsonify({'error': 'Invalid or expired session.'}), 400
@@ -158,8 +159,11 @@ def finalize_invoices():
             else:
                 file_info.pop('approval_block_point', None)
 
-            # Add approval block and write to output
-            processor._add_approval_block(original_path, new_path, file_info)
+            # Add approval block or copy renamed file without annotation
+            if apply_annotations:
+                processor._add_approval_block(original_path, new_path, file_info)
+            else:
+                shutil.copy2(original_path, new_path)
 
         # Zip processed files
         _, zip_path = tempfile.mkstemp(suffix='.zip')
